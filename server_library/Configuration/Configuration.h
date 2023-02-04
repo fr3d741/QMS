@@ -13,6 +13,6 @@ public:
     bool IsDebug() override;
 
     std::map<QString, int> GetPaths() override;
-    std::string GetApiKey() override;
+    QString GetApiKey() override;
 };
 

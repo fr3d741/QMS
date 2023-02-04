@@ -79,7 +79,7 @@ MediaServer::Start()
         if (_queue->HasMessage()) {
             auto msg = _queue->BulkPop();
             while (msg.empty() == false) {
-                local_storage.push_back(QString::fromStdString(msg.front()));
+                local_storage.push_back(msg.front());
                 msg.pop();
             }
             clock = std::chrono::steady_clock::now();

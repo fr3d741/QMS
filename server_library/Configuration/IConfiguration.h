@@ -22,5 +22,5 @@ public:
 
     virtual bool IsDebug() = 0;
     virtual std::map<QString, int> GetPaths() = 0;
-    virtual std::string GetApiKey() = 0;
+    virtual QString GetApiKey() = 0;
 };

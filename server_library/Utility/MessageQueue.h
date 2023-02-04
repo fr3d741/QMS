@@ -9,12 +9,12 @@
 class MessageQueue : public IMessageQueue
 {
     mutable std::shared_mutex _mtx;
-    std::queue<std::string> _queue;
+    std::queue<QString> _queue;
 public:
 
-    void Add(const std::string& msg) override;
-    std::string Pop() override;
-    virtual std::queue<std::string> BulkPop() override;
+    void Add(const QString& msg) override;
+    QString Pop() override;
+    virtual std::queue<QString> BulkPop() override;
     bool HasMessage() const override;
 };
 

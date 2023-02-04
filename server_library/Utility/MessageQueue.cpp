@@ -3,13 +3,13 @@
 #include <mutex>
 
 void 
-MessageQueue::Add(const std::string& msg) {
+MessageQueue::Add(const QString& msg) {
 
     std::unique_lock<std::shared_mutex> l(_mtx);
     _queue.push(msg);
 }
 
-std::string 
+QString
 MessageQueue::Pop() {
 
     std::unique_lock<std::shared_mutex> l(_mtx);
@@ -18,10 +18,10 @@ MessageQueue::Pop() {
     return val;
 }
 
-std::queue<std::string> 
+std::queue<QString>
 MessageQueue::BulkPop() {
 
-    std::queue<std::string> queue;
+    std::queue<QString> queue;
     {
         std::unique_lock<std::shared_mutex> l(_mtx);
         std::swap(queue, _queue);

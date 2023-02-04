@@ -18,8 +18,8 @@ class DLL JsonNode {
 public:
     typedef std::shared_ptr<JsonNode> Ptr;
 
-//    void Add(const std::string& key, int value);
-//    void Add(const std::string& key, const std::string& value);
+    void Add(QString key, int value);
+    void Add(QString key, QString value);
 //    void Add(const std::string& key, double value);
 //    void Add(const std::string& key, bool value);
 //    void Add(const std::string& key, Ptr value);

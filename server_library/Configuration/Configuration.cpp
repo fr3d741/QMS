@@ -23,8 +23,8 @@ Configuration::GetPaths() {
     return paths;
 }
 
-std::string 
+QString
 Configuration::GetApiKey() {
 
-    return _node->GetString("api_key").toStdString();
+    return _node->GetString("api_key");
 }
