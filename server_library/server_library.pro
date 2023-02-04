@@ -4,7 +4,9 @@ QT += network
 TEMPLATE = lib
 DEFINES += MEDIASERVER_LIB
 
-CONFIG += c++17
+CONFIG += c++17 conan_basic_setup
+
+include(../conanbuildinfo.pri)
 
 DESTDIR = ../bin
 

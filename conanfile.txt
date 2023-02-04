@@ -1,0 +1,11 @@
+[requires]
+libcurl/7.87.0
+
+[generators]
+qmake
+
+[options]
+libcurl:shared=True
+
+[imports]
+bin, *.dll -> ../bin
