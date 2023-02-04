@@ -1,5 +1,3 @@
-#pragma once
-
 #include <Configuration/IConfiguration.h>
 
 #include <Factories/ConfigurationFactory.h>
@@ -94,12 +92,12 @@ int main()
         server.RegisterPath(it.first, it.second);
         qDebug() << it.first;
 
-//        {
-//            auto json = JsonNode::Create(logger);
-//            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
-//            json->Add(TagWords(Tags::Path_Update), it.first);
-//            message_queue->Add(json->ToString());
-//        }
+        {
+            auto json = JsonNode::Create(logger);
+            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
+            json->Add(TagWords(Tags::Path_Update), it.first);
+            message_queue->Add(json->ToString());
+        }
     }
 
     fs.Start();

@@ -1,9 +1,7 @@
 #include <Factories/TcpServerFactory.h>
 
 #include <Networking/ITcpServer.h>
-#ifdef _WIN64
-    #include <Networking/TcpServer.h>
-#endif // _WIN64
+#include <Networking/TcpServer.h>
 
 #include <memory>
 

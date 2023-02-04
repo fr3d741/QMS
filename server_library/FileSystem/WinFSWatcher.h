@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef _WIN32
 #include <Utility/IMessageQueue.h>
 #include <Logging/ILogger.h>
 
@@ -18,3 +19,4 @@ namespace File_System {
     };
 
 }
+#endif

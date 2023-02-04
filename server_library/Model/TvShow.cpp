@@ -108,7 +108,7 @@ GatherEpisodesFromJson(JsonNode::Ptr json, std::map<std::string, JsonNode::Ptr>&
     else
         return;
 
-    for (auto i = 0; i < episodes_json.size(); ++i) {
+    for (size_t i = 0; i < episodes_json.size(); ++i) {
 
         const std::string id = Format(season_nr, i+1);
         episodes_map.insert({ id, episodes_json[i] });
@@ -197,7 +197,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
 
             std::map<std::string, JsonNode::Ptr> episodes_map;
             auto group_array = group_json->GetArray(TmdbWords(TmdbTags::groups, MediaType::TvShow));
-            for (int i = 0; i < group_array.size(); ++i) {
+            for (size_t i = 0; i < group_array.size(); ++i) {
 
                 GatherEpisodesFromJson(group_array[i], episodes_map);
             }

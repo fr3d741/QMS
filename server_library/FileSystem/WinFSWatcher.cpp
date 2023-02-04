@@ -1,9 +1,10 @@
 #include <FileSystem/WinFSWatcher.h>
 
+#ifdef _WIN32
 #include <CommonDefines.h>
 #include <Utility/JsonNode.h>
 
-#ifdef _WIN32
+
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -14,11 +15,8 @@
 #include <algorithm>
 #include <thread>
 #include <stop_token>
-#endif
 
 using namespace File_System;
-
-#ifdef _WIN32
 
 void
 WinFSWatcher::WatchDirectories(Logging::ILogger::Ptr logger, const std::vector<QString>& paths, IMessageQueue::Ptr queue) {
@@ -95,6 +93,4 @@ WinFSWatcher::WatchDirectories(Logging::ILogger::Ptr logger, const std::vector<Q
             }
         });
 }
-#else
-void WinFSWatcher::WatchDirectories(Logging::ILogger::Ptr , const std::vector<std::string>& , IMessageQueue::Ptr ){}
 #endif
