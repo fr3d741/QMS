@@ -5,6 +5,7 @@
 
 #include <regex>
 #include <algorithm>
+#include <string>
 #include <QFileInfo>
 #include <QDir>
 #include <QRegularExpression>
@@ -46,11 +47,13 @@ Format(int season, int episode) {
 static std::string
 ConvertToCommonFormat(const QString& str) {
 
-    const QRegularExpression number_filter("[0-9]{1,3}");
-    auto match = number_filter.match(str);
-    
-    auto season = match.captured().toInt();
-    auto episode = match.captured(1).toInt();
+    const std::regex number_filter("[0-9]{1,3}");
+    const std::string std_str = str.toStdString();
+    auto it = std::sregex_iterator(std_str.begin(), std_str.end(), number_filter);
+
+    auto season = stoi(it->str());
+    ++it;
+    auto episode = stoi(it->str());
     return Format(season, episode);
 }
 
@@ -60,37 +63,37 @@ GatherEpisodesFromFS(Logging::ILogger::Ptr logger, QDir dir_entry, std::map<std:
     std::setlocale(LC_ALL, "");
     std::locale::global(std::locale(""));
 
-    for (auto const& season_dir : dir_entry.entryList(QDir::NoDotAndDotDot | QDir::AllDirs)) {
+    for (auto const& season_dir : dir_entry.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs)) {
 
         const std::regex season_filter("season.[0-9]{1,3}", std::regex_constants::icase);
         std::smatch match;
 
-        auto dir_name = season_dir.toStdString();
+        auto dir_name = season_dir.fileName().toStdString();
         if (std::regex_search(dir_name, match, season_filter) == false)
             continue;
 
         int episode_count = 0;
-        QDir season(season_dir);
+        QDir season(season_dir.absoluteFilePath());
 
-        for (auto const& file_entry : season.entryList(QDir::NoDotAndDotDot | QDir::Files) ) {
+        for (auto const& file_entry : season.entryInfoList(QDir::NoDotAndDotDot | QDir::Files) ) {
             // Looking for SxxExx pattern to identify episodes
 
-            if (CommonMedia::IsMediaFile(file_entry) == false)
+            if (CommonMedia::IsMediaFile(file_entry.completeSuffix()) == false)
                 continue;
 
             const QRegularExpression episode_filter("S[0-9]{1,3}E[0-9]{1,3}", QRegularExpression::PatternOption::CaseInsensitiveOption);
 
-            auto episode_match = episode_filter.match(file_entry);
+            auto episode_match = episode_filter.match(file_entry.fileName());
             if (episode_match.hasMatch() == false)
             {
                 XmlNode root("Incorrect file pattern");
-                root.AddAttribute("file", file_entry);
+                root.AddAttribute("file", file_entry.absoluteFilePath());
                 logger->LogMessage(root.Dump());
                 continue;
             }
 
             episode_count++;
-            season_episodes.insert({ ConvertToCommonFormat(episode_match.captured()), file_entry });
+            season_episodes.insert({ ConvertToCommonFormat(episode_match.captured()), file_entry.absoluteFilePath() });
         }
     }
 }
@@ -269,7 +272,8 @@ void
 TvShow::CreateEpisodeNfos(std::map<QString, XmlNode>& result_map) {
 
     std::map<std::string, QString> season_episodes;
-    GatherEpisodesFromFS(_logger, _entry.dir(), season_episodes);
+    QDir dir(_entry.absoluteFilePath());
+    GatherEpisodesFromFS(_logger, dir, season_episodes);
 
     auto show_id = _details->GetInt(Tmdb(TmdbTags::id));
     auto seasons = _details->GetArray(Tmdb(TmdbTags::seasons));
@@ -286,7 +290,7 @@ TvShow::CreateEpisodeNfos(std::map<QString, XmlNode>& result_map) {
 
         QFileInfo info(item.second);
 
-        auto path = info.completeBaseName().append(".nfo");
+        auto path = info.absolutePath() + "/" + info.completeBaseName().append(".nfo");
         result_map[path] = CreateEpisodeXml(epiosde_json);
     }
 }

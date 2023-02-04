@@ -53,7 +53,8 @@ SendRequest(const QString& request_str) {
     }
 
 #ifndef  DISABLE_REST_API
-    auto byte_array = QUrl::toPercentEncoding(request_str);
+
+    std::string std_request = request_str.toStdString();
     std::string result;
     CURL* curl = curl_easy_init();
     if (curl == nullptr)
@@ -65,7 +66,7 @@ SendRequest(const QString& request_str) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-    curl_easy_setopt(curl, CURLOPT_URL, byte_array.data());
+    curl_easy_setopt(curl, CURLOPT_URL, std_request.data());
     res = curl_easy_perform(curl);
 #endif //  DISABLE_REST_API
 
@@ -88,11 +89,12 @@ CreateSearchRequest(const QString title, const char* pattern,  const QString& ap
         return "";
     }
 
-    auto title_wo_year = title.mid(0, match.capturedStart());
+    auto title_wo_year = title.mid(0, match.capturedStart()).trimmed();
+    auto byte_array = QUrl::toPercentEncoding(title_wo_year);
     auto intermediate = match.captured();
     auto year = G::ConvertToYear(intermediate);
 
-    return QString(pattern).arg(api_key).arg(title_wo_year).arg(year);
+    return QString(pattern).arg(api_key).arg(byte_array).arg(year);
 }
 
 QString& RestApi::ApiKey() {
