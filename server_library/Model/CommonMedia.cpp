@@ -331,7 +331,7 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
 bool
 CommonMedia::Init() {
 
-    auto result_in_json = RestApi::SearchMovie(_title);
+    auto result_in_json = RestApi::SearchMovie(_title, _logger);
     if (result_in_json.isEmpty())
     {
         // TODO:
@@ -397,7 +397,7 @@ CommonMedia::Tmdb(TmdbTags key) {
 
 QString
 CommonMedia::GetDetails(QString id) {
-    return RestApi::MovieDetails(id);
+    return RestApi::MovieDetails(id, _logger);
 }
 
 QString

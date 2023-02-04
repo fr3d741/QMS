@@ -11,12 +11,6 @@
 
 typedef wchar_t char_t;
 
-typedef std::basic_string_view<char_t> string_view;
-typedef std::basic_regex<char_t> rgx;
-typedef std::basic_stringstream<char_t> string_stream;
-typedef std::basic_ofstream<char_t> file_stream;
-
-
 enum class Keys {
     NodeType,
     Last

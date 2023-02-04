@@ -27,7 +27,7 @@ namespace Logging {
         void Stop();
 
         void LogMessage(const QString& msg) override;
-
+        void LogDebugMsg(const QString& msg) override;
     private:
         void startCore();
     };

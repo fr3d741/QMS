@@ -170,7 +170,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
         std::map<std::string, JsonNode::Ptr> episodes_map;
         // Seasons stored with TvShow details
         for (auto i = 0; i <= nr_of_seasons; ++i) {
-            auto response_json = JsonNode::Parse(logger, RestApi::Season(show_id, i));
+            auto response_json = JsonNode::Parse(logger, RestApi::Season(show_id, i, logger));
             if (response_json->Has(TmdbWords(TmdbTags::episodes, MediaType::TvShow)) == false)
                 continue;
             GatherEpisodesFromJson(response_json, episodes_map);
@@ -187,7 +187,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
 
     {
         // check for alternate episode groups
-        auto episode_groups_json_string = RestApi::EpisodeGroups(show_id);
+        auto episode_groups_json_string = RestApi::EpisodeGroups(show_id, logger);
         auto ep_group_json = JsonNode::Parse(logger, episode_groups_json_string);
         auto group_results_array = ep_group_json->GetArray(TmdbWords(TmdbTags::results, MediaType::TvShow));
         if (group_results_array.empty())
@@ -195,7 +195,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
 
         for (auto it : group_results_array) {
             auto group_id = it->GetString(TmdbWords(TmdbTags::id, MediaType::TvShow));
-            auto group_str = RestApi::EpisodeGroup(group_id);
+            auto group_str = RestApi::EpisodeGroup(group_id, logger);
             auto group_json = JsonNode::Parse(logger, group_str);
 
             std::map<std::string, JsonNode::Ptr> episodes_map;
@@ -225,7 +225,7 @@ TvShow::TvShow(Logging::ILogger::Ptr logger, QFileInfo entry)
 bool
 TvShow::Init() {
 
-    auto result_in_json = RestApi::SearchTv(_title);
+    auto result_in_json = RestApi::SearchTv(_title, _logger);
     if (result_in_json.isEmpty())
     {
         auto msg = "Empty request response for " + _title;
@@ -265,7 +265,7 @@ TvShow::GetFileName() {
 
 QString
 TvShow::GetDetails(QString id) {
-    return RestApi::TvDetails(id);
+    return RestApi::TvDetails(id, _logger);
 }
 
 void

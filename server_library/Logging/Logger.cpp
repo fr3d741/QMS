@@ -1,6 +1,7 @@
 #include <Logging/Logger.h>
 #include <Utility/GeneralUtilities.h>
 #include <Utility/XmlNode.h>
+#include <Configuration/IConfiguration.h>
 
 #include <chrono>
 #include <sstream>
@@ -57,6 +58,14 @@ Logger::LogMessage(const QString& msg) {
         _messages->push_back(root.Dump());
     }
 
+}
+
+void
+Logger::LogDebugMsg(const QString& msg){
+
+    if (IConfiguration::Instance().IsDebug() == false)
+        return;
+    LogMessage(msg);
 }
 
 void

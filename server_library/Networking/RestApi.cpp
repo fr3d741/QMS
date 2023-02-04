@@ -28,7 +28,7 @@ write_callback(char* ptr, size_t /*size*/, size_t nmemb, void* userdata) {
 }
 
 static QString
-SendRequest(const QString& request_str) {
+SendRequest(const QString& request_str, Logging::ILogger::Ptr log) {
 
     { 
 //        // Implement rate limiting: 20 req/s
@@ -57,8 +57,10 @@ SendRequest(const QString& request_str) {
     std::string std_request = request_str.toStdString();
     std::string result;
     CURL* curl = curl_easy_init();
-    if (curl == nullptr)
+    if (curl == nullptr){
+        log->LogMessage(QString("CURL init failed"));
         return "";
+    }
 
     ScopedFunction fn_curl([=]() { curl_easy_cleanup(curl); });
     CURLcode res;
@@ -71,7 +73,7 @@ SendRequest(const QString& request_str) {
 #endif //  DISABLE_REST_API
 
     if (res != CURLE_OK) {
-        //TODO: Log
+        log->LogMessage(QString("Request failed with error: %1").arg(res));
         return "";
     }
 
@@ -103,51 +105,51 @@ QString& RestApi::ApiKey() {
 }
 
 QString
-RestApi::SearchMovie(const QString& title){
+RestApi::SearchMovie(const QString& title, Logging::ILogger::Ptr log){
 
     auto request = CreateSearchRequest(title, "https://api.themoviedb.org/3/search/movie?api_key=%1&query=%2&page=1&include_adult=false&year=%3", ApiKey());
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 
 QString
-RestApi::SearchTv(const QString& title){
+RestApi::SearchTv(const QString& title, Logging::ILogger::Ptr log){
 
     auto request = CreateSearchRequest(title, "https://api.themoviedb.org/3/search/tv?api_key=%1&page=1&query=%2&include_adult=false&first_air_date_year=%3", ApiKey());
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 
 QString
-RestApi::MovieDetails(const QString& id) {
+RestApi::MovieDetails(const QString& id, Logging::ILogger::Ptr log) {
 
     auto request = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + ApiKey() + "&append_to_response=images,translations,keywords&include_image_language=en,hu,null";
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 
 QString
-RestApi::TvDetails(const QString& id) {
+RestApi::TvDetails(const QString& id, Logging::ILogger::Ptr log) {
 
     auto request = "https://api.themoviedb.org/3/tv/" + id + "?api_key=" + ApiKey() + "&append_to_response=images,translations,keywords,credits&include_image_language=en,HU,null";
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 
 QString
-RestApi::EpisodeGroups(const QString& id) {
+RestApi::EpisodeGroups(const QString& id, Logging::ILogger::Ptr log) {
 
     auto request = "https://api.themoviedb.org/3/tv/" + id + "/episode_groups?api_key=" + ApiKey();
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 
 QString
-RestApi::EpisodeGroup(const QString& group_id) {
+RestApi::EpisodeGroup(const QString& group_id, Logging::ILogger::Ptr log) {
 
     auto request = "https://api.themoviedb.org/3/tv/episode_group/" + group_id + "?api_key=" + ApiKey() + "&append_to_response=credits";
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 
 QString
-RestApi::Season(const QString& id, int season_nr) {
+RestApi::Season(const QString& id, int season_nr, Logging::ILogger::Ptr log) {
 
     auto request = "https://api.themoviedb.org/3/tv/" + id + "/season/" + QString::number(season_nr) + "?api_key=" + ApiKey() + "&append_to_response=translations";
-    return SendRequest(request);
+    return SendRequest(request, log);
 }
 

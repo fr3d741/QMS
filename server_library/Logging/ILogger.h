@@ -12,5 +12,6 @@ namespace Logging {
         typedef std::shared_ptr<ILogger> Ptr;
 
         virtual void LogMessage(const QString& msg) = 0;
+        virtual void LogDebugMsg(const QString& msg) = 0;
     };
 }

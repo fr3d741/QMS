@@ -48,8 +48,10 @@ public:
 
     }
 
-    void Write(const QString& , const QString& ) {
+    void Write(const QString& path, const QString& content) {
 
+        stream << path << Qt::endl;
+        stream << content << Qt::endl;
     }
 
     void Write(const std::string& path, const QString& content) {
