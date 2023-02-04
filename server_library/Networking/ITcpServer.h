@@ -8,5 +8,6 @@ namespace Networking {
         virtual ~ITcpServer() = default;
 
         virtual void ListenOn(unsigned short port) = 0;
+        virtual void Stop() = 0;
     };
 }

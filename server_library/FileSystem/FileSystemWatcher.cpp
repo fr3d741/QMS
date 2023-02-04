@@ -14,7 +14,7 @@ FileSystemWatcher::FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue
 }
 
 void 
-FileSystemWatcher::AddPath(const std::string& path) {
+FileSystemWatcher::AddPath(const QString& path) {
 
     _paths.push_back(path);
     if (_started == false)
@@ -28,7 +28,7 @@ FileSystemWatcher::AddPath(const std::string& path) {
 }
 
 void 
-FileSystemWatcher::AddPath(const std::vector<std::string>& paths) {
+FileSystemWatcher::AddPath(const std::vector<QString>& paths) {
 
     _paths.insert(_paths.end(), paths.begin(), paths.end());
     if (_started == false)

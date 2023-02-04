@@ -19,76 +19,81 @@
 using namespace File_System;
 
 #ifdef _WIN32
-void WinFSWatcher::WatchDirectories(Logging::ILogger::Ptr logger, const std::vector<std::string>& paths, IMessageQueue::Ptr queue)
-{
-//    static std::jthread worker_thread;
 
-//    worker_thread.request_stop();
-//    if (worker_thread.joinable())
-//        worker_thread.join();
+void
+WinFSWatcher::WatchDirectories(Logging::ILogger::Ptr logger, const std::vector<QString>& paths, IMessageQueue::Ptr queue) {
 
-//    if (paths.empty())
-//        return;
+    static std::thread _worker_thread;
+    static std::atomic<bool> _stop_not_requested;
+    static IMessageQueue::Ptr _queue;
 
-//    worker_thread = std::jthread([=](std::stop_token token)
-//        {
-//            DWORD dwWaitStatus;
-//            std::vector<HANDLE> dwChangeHandles;
-//            dwChangeHandles.reserve(paths.size());
+    _queue = queue;
+    _stop_not_requested.store(false);
+    if (_worker_thread.joinable())
+        _worker_thread.join(); //wait until finish
 
-//            // Watch the directory for file creation and deletion.
+    if (paths.empty())
+        return;
 
-//            for (auto path : paths) {
-//                dwChangeHandles.push_back(
-//                    FindFirstChangeNotificationA(path.c_str(),                         // directory to watch
-//                        TRUE,                         // do not watch subtree
-//                        FILE_NOTIFY_CHANGE_FILE_NAME|FILE_NOTIFY_CHANGE_DIR_NAME)); // watch file name changes
-//            }
+    _stop_not_requested.store(true);
+    _worker_thread = std::thread([&]() {
+            DWORD dwWaitStatus;
+            std::vector<HANDLE> dwChangeHandles;
+            dwChangeHandles.reserve(paths.size());
 
-//            // Make a final validation check on our handles.
+            // Watch the directory for file creation and deletion.
 
-//            if (std::any_of(dwChangeHandles.begin(), dwChangeHandles.end(), [](HANDLE h) { return h == NULL; }))
-//            {
-//                printf("\n ERROR: Unexpected NULL from FindFirstChangeNotification.\n");
-//                ExitProcess(GetLastError());
-//            }
+            for (auto path : paths) {
+                dwChangeHandles.push_back(
+                    FindFirstChangeNotificationA(path.toLatin1().data(),                         // directory to watch
+                        TRUE,                         // do watch subtree
+                        FILE_NOTIFY_CHANGE_FILE_NAME|FILE_NOTIFY_CHANGE_DIR_NAME)); // watch file name changes
+            }
 
-//            // Change notification is set. Now wait on both notification
-//            // handles and refresh accordingly.
+            // Make a final validation check on our handles.
 
-//            while (token.stop_requested() == false)
-//            {
-//                // Wait for notification.
+            if (std::any_of(dwChangeHandles.begin(), dwChangeHandles.end(), [](HANDLE h) { return h == NULL; }))
+            {
+                printf("\n ERROR: Unexpected NULL from FindFirstChangeNotification.\n");
+                ExitProcess(GetLastError());
+            }
 
-//                dwWaitStatus = WaitForMultipleObjects(static_cast<DWORD>(dwChangeHandles.size()), dwChangeHandles.data(), FALSE, 1000);
+            // Change notification is set. Now wait on both notification
+            // handles and refresh accordingly.
 
-//                switch (dwWaitStatus)
-//                {
-//                case WAIT_TIMEOUT:
+            while (_stop_not_requested.load())
+            {
+                // Wait for notification.
 
-//                    // A timeout occurred, this would happen if some value other
-//                    // than INFINITE is used in the Wait call and no changes occur.
-//                    // In a single-threaded environment you might not want an
-//                    // INFINITE wait.
-//                    break;
+                dwWaitStatus = WaitForMultipleObjects(static_cast<DWORD>(dwChangeHandles.size()), dwChangeHandles.data(), FALSE, 1000);
 
-//                case WAIT_OBJECT_0:
-//                default:
-//                    // A file was created, renamed, or deleted in the directory.
-//                    // Refresh this directory and restart the notification.
-//                    auto json = JsonNode::Create(logger);
-//                    json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
-//                    json->Add(TagWords(Tags::Path_Update), paths.at(dwWaitStatus));
-//                    queue->Add(json->ToString());
-//                    if (FindNextChangeNotification(dwChangeHandles[dwWaitStatus]) == FALSE)
-//                    {
-//                        printf("\n ERROR: FindNextChangeNotification function failed.\n");
-//                        ExitProcess(GetLastError());
-//                    }
-//                    break;
-//                }
-//            }
-//        });
+                switch (dwWaitStatus)
+                {
+                case WAIT_TIMEOUT:
+
+                    // A timeout occurred, this would happen if some value other
+                    // than INFINITE is used in the Wait call and no changes occur.
+                    // In a single-threaded environment you might not want an
+                    // INFINITE wait.
+                    break;
+
+                case WAIT_OBJECT_0:
+                default:
+                    // A file was created, renamed, or deleted in the directory.
+                    // Refresh this directory and restart the notification.
+                    auto json = JsonNode::Create(logger);
+                    json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
+                    json->Add(TagWords(Tags::Path_Update), paths.at(dwWaitStatus));
+                    _queue->Add(json->ToString());
+                    if (FindNextChangeNotification(dwChangeHandles[dwWaitStatus]) == FALSE)
+                    {
+                        printf("\n ERROR: FindNextChangeNotification function failed.\n");
+                        ExitProcess(GetLastError());
+                    }
+                    break;
+                }
+            }
+        });
 }
 #else
 void WinFSWatcher::WatchDirectories(Logging::ILogger::Ptr , const std::vector<std::string>& , IMessageQueue::Ptr ){}

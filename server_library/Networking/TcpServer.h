@@ -4,6 +4,7 @@
 #include <Utility/IMessageQueue.h>
 
 #include <memory>
+#include <atomic>
 
 namespace Logging {
     class ILogger;
@@ -11,15 +12,17 @@ namespace Logging {
 
 namespace Networking {
 
-    class WinTcpServer : public ITcpServer
+    class TcpServer : public ITcpServer
     {
+        std::atomic<bool> _stop_not_requested = true;
         std::weak_ptr<Logging::ILogger> _logger;
         IMessageQueue::Ptr _messageQueue;
+
     public:
-        WinTcpServer(std::weak_ptr<Logging::ILogger> logger, IMessageQueue::Ptr messageQueue);
+        TcpServer(std::weak_ptr<Logging::ILogger> logger, IMessageQueue::Ptr messageQueue);
 
         void ListenOn(unsigned short port) override;
-
+        void Stop() override;
     private:
         int listenCore(unsigned short port);
     };

@@ -6,22 +6,12 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <QTextStream>
 
 using namespace Logging;
 using namespace std::chrono_literals;
 
-static std::ofstream
-fileStream() {
-
-    std::ofstream stream;
-    auto now = std::chrono::steady_clock::now();
-    auto file = std::to_string(now.time_since_epoch().count());
-    auto file_path = "logs/" + file + ".mslog";
-    stream.open(file_path, std::ios::out);
-    return stream;
-}
-
-static std::string 
+static QString
 GetTimeStamp() {
 
     std::time_t t = std::time(nullptr);
@@ -29,7 +19,7 @@ GetTimeStamp() {
 
     std::stringstream stream;
     stream << std::put_time(&tm, "%c");
-    return stream.str();
+    return QString::fromStdString(stream.str());
 }
 
 Logger::Logger() {
@@ -39,66 +29,54 @@ Logger::Logger() {
 void 
 Logger::Start() {
 
-    // _logger_file = fileStream();
-    // if (_logger_file.is_open() == false || _logger_file.good() == false)
-    //     throw std::runtime_error("Unable to open log file");
+    auto now = std::chrono::steady_clock::now();
+    auto file = std::to_string(now.time_since_epoch().count());
+    auto file_name = QString("logs/%1.mslog").arg(file.c_str());
+    _logger_file.setFileName(file_name);
+    _logger_file.open(QIODevice::WriteOnly);
 
-    // _worker_thread = std::jthread([&](std::stop_token token) {
-
-    //     while (true)
-    //     {
-    //         std::shared_ptr<std::list<std::string>> replica_messages = std::make_shared<std::list<std::string>>();
-    //         {
-    //             std::lock_guard guard(_mutex);
-    //             _messages.swap(replica_messages);
-    //         }
-
-    //         if (replica_messages != nullptr && !replica_messages->empty()) {
-    //             for (auto msg : *replica_messages) {
-    //                 _logger_file << msg << std::endl;
-    //             }
-    //             _logger_file.flush();
-    //         }
-
-    //         if (token.stop_requested() && replica_messages->empty()) {
-    //             break;
-    //         }
-    //         std::this_thread::sleep_for(1min);
-    //     }
-    // });
+    auto t = std::thread(&Logger::startCore, this);
+    t.detach();
 }
 
 void 
 Logger::Stop() {
 
-    // _worker_thread.request_stop();
-    // if (_worker_thread.joinable())
-    //     _worker_thread.join();
-
-    // _logger_file.close();
-}
-
-void
-Logger::LogMessage(const char* msg) {
-
-    // XmlNode root("entry");
-    // root.AddAttribute("time_stamp", GetTimeStamp());
-    // root.AddChild("message", msg);
-    // {
-    //     std::lock_guard guard(_mutex);
-    //     _messages->push_back(GeneralUtilities::Convert(root.Dump()));
-    // }
-    std::cout << msg << std::endl;
-}
-
-void
-Logger::LogMessage(const std::string& msg) {
-
-    LogMessage(msg.c_str());
+    _stop_not_requested.store(false);
 }
 
 void
 Logger::LogMessage(const QString& msg) {
 
-    LogMessage(msg.toLatin1().data());
+    XmlNode root("entry");
+    root.AddAttribute("time_stamp", GetTimeStamp());
+    root.AddChild("message", msg);
+    {
+        std::lock_guard guard(_mutex);
+        _messages->push_back(root.Dump());
+    }
+
+}
+
+void
+Logger::startCore(){
+
+    while (_stop_not_requested.load())
+    {
+        std::shared_ptr<std::list<QString>> replica_messages = std::make_shared<std::list<QString>>();
+        {
+            std::lock_guard guard(_mutex);
+            _messages.swap(replica_messages);
+        }
+
+        if (replica_messages != nullptr && !replica_messages->empty()) {
+            QTextStream stream(&_logger_file);
+            for (auto msg : *replica_messages) {
+                stream << msg << Qt::endl;
+            }
+            stream.flush();
+        }
+
+        std::this_thread::sleep_for(1min);
+    }
 }

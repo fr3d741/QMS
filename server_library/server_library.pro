@@ -26,7 +26,7 @@ SOURCES += \
     Model/CommonMedia.cpp \
     Model/TvShow.cpp \
     Networking/RestApi.cpp \
-    Networking/WinTcpServer.cpp \
+    Networking/TcpServer.cpp \
     Utility/GeneralUtilities.cpp \
     Utility/JsonNode.cpp \
     Utility/MessageQueue.cpp \
@@ -51,7 +51,7 @@ HEADERS += \
     Model/TvShow.h \
     Networking/ITcpServer.h \
     Networking/RestApi.h \
-    Networking/WinTcpServer.h \
+    Networking/TcpServer.h \
     Utility/GeneralUtilities.h \
     Utility/IMessageQueue.h \
     Utility/JsonNode.h \

@@ -10,12 +10,14 @@
 #include <fstream>
 
 #include <QString>
+#include <QFile>
 
 namespace Logging {
 
     class DLL Logger : public ILogger
     {
-        std::ofstream _logger_file;
+        QFile _logger_file;
+        std::atomic<bool> _stop_not_requested = true;
         std::mutex _mutex;
         std::shared_ptr<std::list<QString>> _messages;
     public:
@@ -24,9 +26,10 @@ namespace Logging {
         void Start();
         void Stop();
 
-        void LogMessage(const char* msg) override;
-        void LogMessage(const std::string& msg) override;
         void LogMessage(const QString& msg) override;
+
+    private:
+        void startCore();
     };
 
 }

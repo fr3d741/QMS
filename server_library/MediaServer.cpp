@@ -68,8 +68,8 @@ MediaServer::MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue,
 }
 
 void 
-MediaServer::Start()
-{
+MediaServer::Start() {
+
     std::list<QString> local_storage;
     std::chrono::steady_clock::time_point clock;
     bool count_started = false;
@@ -146,7 +146,6 @@ MediaServer::processMessage(QString& message) {
                     _cache.insert(path);
                 }
 
-                qDebug() << dir_entry;
                 std::shared_ptr<Media::CommonMedia> media;
                 switch (media_type)
                 {
@@ -160,7 +159,6 @@ MediaServer::processMessage(QString& message) {
                         break;
                 }
 
-                std::cout << "___" << __FILE__ << "::" << __LINE__ << std::endl;
                 if (media->Init() == false)
                     continue;
 

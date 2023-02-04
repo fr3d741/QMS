@@ -22,6 +22,7 @@
 
 #include <QFile>
 #include <QTextStream>
+#include <QDebug>
 
 #define TEST
 
@@ -31,10 +32,8 @@
 
 class MockWriter :public IStreamWriter {
 
-    //std::wofstream out;
     QFile out;
     QTextStream stream;
-    bool is_good = false;
 public:
     MockWriter() :
       #ifdef _WIN32
@@ -45,58 +44,20 @@ public:
           stream(&out)
       #endif
     {
-       //out.open("f:\\tmp\\log.txt", std::ios::binary);
-        //is_good = out.is_open() && out.good();
-        //out.exceptions(std::wofstream::failbit);
-        //out.exceptions(std::wofstream::badbit);
     }
 
-    void Write(const std::string& path, const std::string& content) {
+    void Write(const std::string& , const std::string& ) {
 
-        //std::setlocale(LC_ALL, "");
-        //std::locale::global(std::locale(""));
-        //try
-        //{
-        //    out << GeneralUtilities::Convert(path) << "\t\t" << GeneralUtilities::Convert(content) << std::endl;
-        //    out.flush();
-        //}
-        //catch (std::exception& e) {
-        //    std::cout << e.what() << std::endl;
-        //}
     }
 
-    void Write(const QString& path, const QString& content) {
+    void Write(const QString& , const QString& ) {
 
-        //std::setlocale(LC_ALL, "");
-        //std::locale::global(std::locale(""));
-        //try
-        //{
-        //    out << path << "\t\t" << content << std::endl;
-        //    out.flush();
-        //}
-        //catch (std::exception& e) {
-        //    std::cout << e.what() << std::endl;
-        //}
     }
 
     void Write(const std::string& path, const QString& content) {
 
         stream << QString::fromStdString(path) << Qt::endl;
         stream << content << Qt::endl;
-        //std::setlocale(LC_ALL, "");
-        //std::locale::global(std::locale(""));
-        //try
-        //{
-        //    auto p = GeneralUtilities::Convert(path);
-        //    //out << p << "\t\t" << content << std::endl;
-        //    out.write(p.c_str(), p.size());
-        //    out.write(L"\t\t", 2);
-        //    out.write(content.c_str(), content.size());
-        //    out.flush();
-        //}
-        //catch (std::exception& e) {
-        //    std::cout << e.what() << std::endl;
-        //}
     }
 
     void close() {
@@ -129,21 +90,22 @@ int main()
     File_System::FileSystemWatcher fs(logger, message_queue);
     for (auto it : config->GetPaths()) {
 
-        //fs.AddPath(it.first);
+        fs.AddPath(it.first);
         server.RegisterPath(it.first, it.second);
+        qDebug() << it.first;
 
-        {
-            auto json = JsonNode::Create(logger);
-            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
-            json->Add(TagWords(Tags::Path_Update), it.first);
-            message_queue->Add(json->ToString());
-        }
+//        {
+//            auto json = JsonNode::Create(logger);
+//            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
+//            json->Add(TagWords(Tags::Path_Update), it.first);
+//            message_queue->Add(json->ToString());
+//        }
     }
 
     fs.Start();
 
     auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
-    tcp_server->ListenOn(0);
+    tcp_server->ListenOn(33015);
 
     try {
         server.Start();
@@ -157,6 +119,7 @@ int main()
 #endif
 
     fs.Stop();
+    tcp_server->Stop();
     logger->Stop();
 
     return 1;
