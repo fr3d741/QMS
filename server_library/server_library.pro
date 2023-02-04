@@ -2,11 +2,10 @@ QT -= gui
 QT += network
 
 TEMPLATE = lib
-DEFINES += SERVER_LIBRARY_LIBRARY
+DEFINES += MEDIASERVER_LIB
 
 CONFIG += c++17
 
-DEFINES += MEDIASERVER_LIB
 DESTDIR = ../bin
 
 # You can make your code fail to compile if it uses deprecated APIs.

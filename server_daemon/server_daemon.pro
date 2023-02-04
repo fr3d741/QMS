@@ -3,7 +3,7 @@ QT -= gui
 CONFIG += c++17 console
 CONFIG -= app_bundle
 
-INCLUDEPATH += ../server_library
+INCLUDEPATH += $$PWD/../server_library
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -12,7 +12,8 @@ INCLUDEPATH += ../server_library
 SOURCES += \
         main.cpp
 
-LIBS += ../bin/server_library.lib
+win32: LIBS += ../bin/server_library.lib
+unix: LIBS += -L../bin/ -lserver_library
 DESTDIR = ../bin
 
 # Default rules for deployment.
