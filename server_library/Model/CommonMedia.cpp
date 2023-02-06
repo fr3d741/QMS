@@ -44,7 +44,7 @@ static JsonNode::Ptr
 SelectOne(Logging::ILogger::Ptr logger, MediaType media_type, const QString& expected_title, const std::vector<JsonNode::Ptr>& values, std::function<QString(JsonNode::Ptr)> get_title_fn, bool& is_match_date, bool& is_match_title) {
 
     std::map<Key, JsonNode::Ptr> result_mapping;
-    const QRegularExpression regex("[(][0-9]{4}[)]");
+    const static QRegularExpression regex("[(][0-9]{4}[)]");
     auto match = regex.match(expected_title);
     QString title_wo_year = expected_title.mid(0, match.capturedStart());
     int release_year = G::ConvertToYear(match.captured());
@@ -100,12 +100,13 @@ SelectOne(Logging::ILogger::Ptr logger, MediaType media_type, const QString& exp
         if (IConfiguration::Instance().IsDebug()) {
             XmlNode root("Multiple results");
             root.AddAttribute("title", expected_title);
+            root.AddChild("selected", chosen->ToString());
 
             for (auto item : result_mapping)
             {
                 root.AddChild("Element", item.first._hash);
             }
-            logger->LogMessage(root.Dump());
+            logger->LogDebugMsg(root.Dump());
         }
     }
 
@@ -332,21 +333,10 @@ bool
 CommonMedia::Init() {
 
     auto result_in_json = RestApi::SearchMovie(_title, _logger);
-    if (result_in_json.isEmpty())
-    {
-        // TODO:
-        _logger->LogMessage("Empty json for" + _title);
-        return false;
-    }
-    auto json = JsonNode::Parse(_logger, result_in_json);
-    _details = GetDetails(json, [&](JsonNode::Ptr pp) { return pp->GetString(Tmdb(TmdbTags::title)); });
-    if (_details == nullptr) {
-        XmlNode root("Init");
-        auto msg = "Cannot find details for {}" + _title;
-        root.AddAttribute("message", msg);
-        //root.AddChild("CompleteJSON", json());
-        _logger->LogMessage(root.Dump());
-        return false;
+    if (initCore(result_in_json) == false){
+        _logger->LogDebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
+        result_in_json = RestApi::SearchMovieWithoutYear(_title, _logger);
+        return initCore(result_in_json);
     }
 
     return true;
@@ -358,14 +348,15 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
     JsonNode& json = *json_ptr;
     if (json.Has("results") == false)
     {
-        _logger->LogMessage("No results sectiton in " + json.ToString());
+        _logger->LogDebugMsg(QString("[%1] No results section in %2").arg(_title).arg(json.ToString()));
         return nullptr;
     }
 
     std::vector<JsonNode::Ptr> values;
     if (json.Get("results", values) == false || values.empty())
     {
-        _logger->LogMessage("No results sectiton in " + json.ToString());
+        _logger->LogDebugMsg(QString("[%1] Empty results section in %2").arg(_title).arg(json.ToString()));
+
         return nullptr;
     }
 
@@ -379,8 +370,9 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
             XmlNode root("Multiple results");
             root.AddAttribute("title", _title);
             root.AddAttribute("path", _entry.absoluteFilePath());
+            root.AddChild("selected JSON", js->ToString());
             root.AddChild("Complete JSON", json.ToString());
-            _logger->LogMessage(root.Dump());
+            _logger->LogDebugMsg(root.Dump());
         }
     }
 
@@ -403,7 +395,6 @@ CommonMedia::GetDetails(QString id) {
 QString
 CommonMedia::GetFileName() {
 
-    QString extension(".nfo");
     for (auto const& dir_entry : _entry.dir().entryInfoList(QDir::NoDotAndDotDot | QDir::Files) )
     {
         if (IsMediaFile(dir_entry.path()) == false)
@@ -422,7 +413,7 @@ CommonMedia::CreateXml() {
     std::map<QString, XmlNode> xmls;
     if (_details == nullptr)
     {
-        _logger->LogMessage("This should never happen! No Json to create XML from!");
+        _logger->LogDebugMsg("This should never happen! No Json to create XML from!");
         return xmls;
     }
 
@@ -463,4 +454,29 @@ CommonMedia::IsMediaFile(const QString& path) {
     }
 
     return false;
+}
+
+bool
+CommonMedia::initCore(QString result_in_json) {
+
+    if (result_in_json.isEmpty())
+    {
+        _logger->LogDebugMsg("Empty json for" + _title); //network error?
+        return false;
+    }
+
+    auto json = JsonNode::Parse(_logger, result_in_json);
+    _details = GetDetails(json, [&](JsonNode::Ptr pp) { return pp->GetString(Tmdb(TmdbTags::title)); });
+    if (_details == nullptr) {
+
+        XmlNode root("Init");
+        auto msg = "Cannot find details for " + _title;
+        root.AddAttribute("message", msg);
+        root.AddAttribute("path", _entry.absoluteFilePath());
+        root.AddChild("CompleteJSON", json->ToString());
+        _logger->LogDebugMsg(root.Dump());
+        return false;
+    }
+
+    return true;
 }

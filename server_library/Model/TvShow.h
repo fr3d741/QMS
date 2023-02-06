@@ -20,8 +20,9 @@ namespace Media {
         const char* Tmdb(TmdbTags key) override;
         QString GetFileName() override;
         QString GetDetails(QString id) override;
-    public:
         void CreateEpisodeNfos(std::map<QString, XmlNode>& dir_entry);
+    private:
+        bool initCore(QString result_in_json);
     };
 
 }

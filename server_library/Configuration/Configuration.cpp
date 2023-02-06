@@ -7,7 +7,12 @@ Configuration::Configuration(JsonNode::Ptr node)
 
 bool 
 Configuration::IsDebug() {
-    return false;
+    return _isDebug;
+}
+
+bool
+Configuration::IsLogRequest(){
+    return _isLogRequest;
 }
 
 std::map<QString, int>

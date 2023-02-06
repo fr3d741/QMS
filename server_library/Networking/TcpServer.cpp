@@ -46,7 +46,7 @@ int TcpServer::listenCore(unsigned short port) {
 
     while(_stop_not_requested.load()){
 
-        if (server.hasPendingConnections()){
+        if (server.waitForNewConnection(1000)){
 
             auto result = Process(server.nextPendingConnection());
             if (result.isEmpty())
@@ -56,7 +56,7 @@ int TcpServer::listenCore(unsigned short port) {
             continue;
         }
 
-        std::this_thread::sleep_for(1s);
+        //std::this_thread::sleep_for(1s);
     }
 
     return 0;

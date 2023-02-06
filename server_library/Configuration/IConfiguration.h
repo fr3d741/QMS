@@ -21,6 +21,7 @@ public:
     static void Instance(Ptr configuration);
 
     virtual bool IsDebug() = 0;
+    virtual bool IsLogRequest() = 0; // TODO: refactor to log level
     virtual std::map<QString, int> GetPaths() = 0;
     virtual QString GetApiKey() = 0;
 };

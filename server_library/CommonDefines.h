@@ -13,11 +13,14 @@ typedef wchar_t char_t;
 
 enum class Keys {
     NodeType,
+    Message,
     Last
 };
 
-enum class Tags {
+enum class Actions {
     Path_Update,
+    Test,
+    Quit,
     Last
 };
 
@@ -91,7 +94,6 @@ enum class KodiTags {
 };
 
 DLL const char* KeyWords(Keys key);
-DLL const char* TagWords(Tags key);
 DLL const char* TmdbWords(TmdbTags key, int media_type = 0);
 DLL const char* KodiWords(KodiTags key);
 DLL const char* XmlTagFor(MediaType media_type);

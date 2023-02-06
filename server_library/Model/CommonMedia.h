@@ -60,5 +60,7 @@ namespace Media {
         virtual QString GetDetails(QString id);
         virtual QString GetFileName();
         virtual JsonNode::Ptr GetDetails(JsonNode::Ptr json_ptr, std::function<QString (JsonNode::Ptr)> get_title_fn);
+    private:
+        bool initCore(QString result_in_json);
     };
 }

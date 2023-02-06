@@ -72,27 +72,24 @@ GatherEpisodesFromFS(Logging::ILogger::Ptr logger, QDir dir_entry, std::map<std:
         if (std::regex_search(dir_name, match, season_filter) == false)
             continue;
 
-        int episode_count = 0;
         QDir season(season_dir.absoluteFilePath());
-
         for (auto const& file_entry : season.entryInfoList(QDir::NoDotAndDotDot | QDir::Files) ) {
             // Looking for SxxExx pattern to identify episodes
 
             if (CommonMedia::IsMediaFile(file_entry.completeSuffix()) == false)
                 continue;
 
-            const QRegularExpression episode_filter("S[0-9]{1,3}E[0-9]{1,3}", QRegularExpression::PatternOption::CaseInsensitiveOption);
+            const static QRegularExpression episode_filter("S[0-9]{1,3}E[0-9]{1,3}", QRegularExpression::PatternOption::CaseInsensitiveOption);
 
             auto episode_match = episode_filter.match(file_entry.fileName());
             if (episode_match.hasMatch() == false)
             {
                 XmlNode root("Incorrect file pattern");
                 root.AddAttribute("file", file_entry.absoluteFilePath());
-                logger->LogMessage(root.Dump());
+                logger->LogDebugMsg(root.Dump());
                 continue;
             }
 
-            episode_count++;
             season_episodes.insert({ ConvertToCommonFormat(episode_match.captured()), file_entry.absoluteFilePath() });
         }
     }
@@ -226,22 +223,28 @@ bool
 TvShow::Init() {
 
     auto result_in_json = RestApi::SearchTv(_title, _logger);
-    if (result_in_json.isEmpty())
-    {
-        auto msg = "Empty request response for " + _title;
-        _logger->LogMessage(msg);
-        return false;
+    if (initCore(result_in_json))
+        return true;
+
+    _logger->LogDebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
+    result_in_json = RestApi::SearchTvWithoutYear(_title, _logger);
+    if (initCore(result_in_json))
+        return true;
+
+    _logger->LogDebugMsg(QString("Searching by replaceing character for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
+    QString new_title;
+    for(auto c : _title) {
+        if (c.isDigit() || c.isLetter() || c == '(' || c == ')')
+            new_title.append(c);
+        else
+            new_title.append(' ');
     }
 
-    auto json = JsonNode::Parse(_logger, result_in_json);
-    _details = CommonMedia::GetDetails(json, [&](JsonNode::Ptr pp) { return pp->GetString(Tmdb(TmdbTags::name)); });
-    if (_details == nullptr) {
-        auto msg = "Cannot find details for " + _title;
-        _logger->LogMessage(msg);
-        return false;
-    }
+    result_in_json = RestApi::SearchTvWithoutYear(new_title, _logger);
+    if (initCore(result_in_json))
+        return true;
 
-    return true;
+    return false;
 }
 
 std::map<QString, XmlNode>
@@ -294,3 +297,28 @@ TvShow::CreateEpisodeNfos(std::map<QString, XmlNode>& result_map) {
         result_map[path] = CreateEpisodeXml(epiosde_json);
     }
 }
+
+bool
+TvShow::initCore(QString result_in_json) {
+
+    if (result_in_json.isEmpty())
+    {
+        auto msg = "Empty request response for " + _title;
+        _logger->LogDebugMsg(msg);
+        return false;
+    }
+
+    auto json = JsonNode::Parse(_logger, result_in_json);
+    _details = CommonMedia::GetDetails(json, [&](JsonNode::Ptr pp) { return pp->GetString(Tmdb(TmdbTags::name)); });
+    if (_details == nullptr) {
+        XmlNode root("tvshow");
+        root.AddAttribute("error", "Cannot find details for " + _title);
+        root.AddAttribute("path", _entry.absoluteFilePath());
+        root.AddChild("json", result_in_json);
+        _logger->LogDebugMsg(root.Dump());
+        return false;
+    }
+
+    return true;
+}
+

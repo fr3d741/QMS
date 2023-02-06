@@ -35,7 +35,7 @@ MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
         }
 
         int type = root->GetInt(KeyWords(Keys::NodeType));
-        if (type < 0 || static_cast<int>(Tags::Last) <= type)
+        if (type < 0 || static_cast<int>(Actions::Last) <= type)
         {
             logger->LogMessage("Invalid node type: " + msg);
             continue;
@@ -73,8 +73,7 @@ MediaServer::Start() {
     std::list<QString> local_storage;
     std::chrono::steady_clock::time_point clock;
     bool count_started = false;
-    bool do_continue = true;
-    while (do_continue) {
+    while (_continue) {
 
         if (_queue->HasMessage()) {
             auto msg = _queue->BulkPop();
@@ -99,8 +98,8 @@ MediaServer::Start() {
                 for (auto item : messages) {
                     processMessage(item);
                 }
-                std::cout << "finished " <<std::endl;
-                break;
+//                std::cout << "finished " <<std::endl;
+//                break;
             }
         }
 
@@ -124,15 +123,15 @@ MediaServer::processMessage(QString& message) {
     }
 
     int type = root->GetInt(KeyWords(Keys::NodeType));
-    if (type < 0 || static_cast<int>(Tags::Last) <= type)
+    if (type < 0 || static_cast<int>(Actions::Last) <= type)
     {
         _logger->LogMessage("Invalid node type: " + message);
         return;
     }
 
-    switch (static_cast<Tags>(type)) {
-        case Tags::Path_Update: {
-            QString path = root->GetString(TagWords(Tags::Path_Update));
+    switch (static_cast<Actions>(type)) {
+        case Actions::Path_Update: {
+            QString path = root->GetString(KeyWords(Keys::Message));
             auto media_type = (MediaType)_path_types[path];
 
             QDir dir(path);
@@ -145,6 +144,8 @@ MediaServer::processMessage(QString& message) {
                         continue;
                     _cache.insert(path);
                 }
+
+                qDebug() << path;
 
                 std::shared_ptr<Media::CommonMedia> media;
                 switch (media_type)
@@ -159,8 +160,10 @@ MediaServer::processMessage(QString& message) {
                         break;
                 }
 
-                if (media->Init() == false)
+                if (media->Init() == false){
+                    _logger->LogMessage("Failed to process " + path);
                     continue;
+                }
 
                 auto nodes = media->CreateXml();
 
@@ -169,9 +172,15 @@ MediaServer::processMessage(QString& message) {
                     _writer->Write(it.first, it.second.Dump());
                 }
             }
-        }
-        break;
-        case Tags::Last:
+            }
+            break;
+        case Actions::Test:
+            qDebug() << "Test message" << root->GetString(KeyWords(Keys::Message));
+            break;
+        case Actions::Quit:
+            _continue = false;
+            break;
+        case Actions::Last:
         default:
             break;
     }

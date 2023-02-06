@@ -19,6 +19,7 @@ class DLL MediaServer {
     QSet<QString> _cache;
     std::map<QString, int> _path_types;
     IStreamWriter::Ptr _writer;
+    bool _continue = true;
 
 public:
     MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer);

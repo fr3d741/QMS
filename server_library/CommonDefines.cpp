@@ -3,21 +3,11 @@
 const char* 
 KeyWords(Keys key) {
     constexpr std::array<const char*, static_cast<size_t>(Keys::Last)> words = { 
-        "NodeType" 
+        "NodeType", "Message"
     };
 
     return words[static_cast<int>(key)];
 }
-
-const char* 
-TagWords(Tags key) {
-    constexpr std::array<const char*, static_cast<size_t>(Tags::Last)> words = {
-        "PathUpdate" 
-    };
-
-    return words[static_cast<int>(key)];
-}
-
 
 const char* 
 TmdbWords(TmdbTags key, int media_type) {

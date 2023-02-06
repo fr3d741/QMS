@@ -42,6 +42,7 @@ public:
           stream(&out)
       #endif
     {
+        out.open(QIODevice::WriteOnly);
     }
 
     void Write(const std::string& , const std::string& ) {
@@ -88,7 +89,7 @@ int main()
 #endif // TEST
 
     File_System::FileSystemWatcher fs(logger, message_queue);
-    for (auto it : config->GetPaths()) {
+    for (auto&& it : config->GetPaths()) {
 
         fs.AddPath(it.first);
         server.RegisterPath(it.first, it.second);
@@ -96,8 +97,8 @@ int main()
 
         {
             auto json = JsonNode::Create(logger);
-            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Tags::Path_Update));
-            json->Add(TagWords(Tags::Path_Update), it.first);
+            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Path_Update));
+            json->Add(KeyWords(Keys::Message), it.first);
             message_queue->Add(json->ToString());
         }
     }
