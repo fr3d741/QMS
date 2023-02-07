@@ -1,31 +1,38 @@
 #include <Configuration/Configuration.h>
 
-Configuration::Configuration(JsonNode::Ptr node)
- :_node(node){
+static void
+GetPaths(JsonNode::Ptr node, std::map<QString, int>& paths) {
 
-}
+    if (node->Has("paths_to_watch") == false)
+        return;
 
-bool 
-Configuration::IsDebug() {
-    return _isDebug;
-}
-
-bool
-Configuration::IsLogRequest(){
-    return _isLogRequest;
-}
-
-std::map<QString, int>
-Configuration::GetPaths() {
-
-    std::map<QString, int> paths;
-    auto json_array = _node->GetArray("paths_to_watch");
+    auto json_array = node->GetArray("paths_to_watch");
     for (auto js : json_array) {
         auto p = js->GetString("path");
         auto t = js->GetInt("type");
         paths[p] = t;
     }
-    return paths;
+}
+
+static void
+GetLogLevel(JsonNode::Ptr node, int& log_level) {
+
+    if (node->Has("LogLevel") == false)
+        return;
+
+    log_level = node->GetInt("LogLevel");
+}
+
+Configuration::Configuration(JsonNode::Ptr node)
+ :_node(node) {
+    ::GetPaths(_node, _paths);
+    ::GetLogLevel(_node, _log_level);
+}
+
+std::map<QString, int>
+Configuration::GetPaths() {
+
+    return _paths;
 }
 
 QString

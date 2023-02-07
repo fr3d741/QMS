@@ -16,6 +16,7 @@ namespace Logging {
 
     class DLL Logger : public ILogger
     {
+        LogLevel _current_logLevel = LogLevel::Error;
         QFile _logger_file;
         std::atomic<bool> _stop_not_requested = true;
         std::mutex _mutex;
@@ -26,8 +27,10 @@ namespace Logging {
         void Start();
         void Stop();
 
-        void LogMessage(const QString& msg) override;
-        void LogDebugMsg(const QString& msg) override;
+        void LogMessage(const QString& msg, LogLevel level) override;
+        void SetLogLevel(LogLevel log_level) override;
+        void IncreaseLogLevel() override;
+        void DecreaseLogLevel() override;
     private:
         void startCore();
     };

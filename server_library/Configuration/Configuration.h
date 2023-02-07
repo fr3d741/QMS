@@ -6,14 +6,11 @@
 
 class DLL Configuration : public IConfiguration
 {
-    bool _isDebug = true;
-    bool _isLogRequest = false;
+    std::map<QString, int> _paths;
+    int _log_level = 0;
     JsonNode::Ptr _node;
 public:
     Configuration(JsonNode::Ptr node);
-
-    bool IsDebug() override;
-    bool IsLogRequest() override;
 
     std::map<QString, int> GetPaths() override;
     QString GetApiKey() override;

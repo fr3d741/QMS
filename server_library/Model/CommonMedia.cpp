@@ -41,7 +41,7 @@ GetReleaseYear(JsonNode::Ptr ptr, MediaType media_type) {
 }
 
 static JsonNode::Ptr
-SelectOne(Logging::ILogger::Ptr logger, MediaType media_type, const QString& expected_title, const std::vector<JsonNode::Ptr>& values, std::function<QString(JsonNode::Ptr)> get_title_fn, bool& is_match_date, bool& is_match_title) {
+SelectOne(MediaType media_type, const QString& expected_title, const std::vector<JsonNode::Ptr>& values, std::function<QString(JsonNode::Ptr)> get_title_fn, bool& is_match_date, bool& is_match_title) {
 
     std::map<Key, JsonNode::Ptr> result_mapping;
     const static QRegularExpression regex("[(][0-9]{4}[)]");
@@ -93,18 +93,6 @@ SelectOne(Logging::ILogger::Ptr logger, MediaType media_type, const QString& exp
         auto it = std::min_element(result_mapping.begin(), result_mapping.end(), [](std::pair<const Key, JsonNode::Ptr>& a, std::pair<const Key, JsonNode::Ptr>& b) { return a.first.hamming_distance < b.first.hamming_distance; });
         if (it != result_mapping.end()) {
             chosen = it->second;
-        }
-    }
-
-    if (is_match_date && is_match_title) {
-        if (IConfiguration::Instance().IsDebug()) {
-            XmlNode root("Multiple results");
-            root.AddAttribute("path", expected_title);
-            for (auto item : result_mapping)
-            {
-                root.AddChild("Element", item.first._hash);
-            }
-            logger->LogDebugMsg(root.Dump());
         }
     }
 
@@ -332,7 +320,7 @@ CommonMedia::Init() {
 
     auto result_in_json = RestApi::SearchMovie(_title, _logger);
     if (initCore(result_in_json) == false){
-        _logger->LogDebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
+        _logger->DebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
         result_in_json = RestApi::SearchMovieWithoutYear(_title, _logger);
         return initCore(result_in_json);
     }
@@ -346,14 +334,14 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
     JsonNode& json = *json_ptr;
     if (json.Has("results") == false)
     {
-        _logger->LogDebugMsg(QString("[%1] No results section in %2").arg(_title).arg(json.ToString()));
+        _logger->DebugMsg(QString("[%1] No results section in %2").arg(_title).arg(json.ToString()));
         return nullptr;
     }
 
     std::vector<JsonNode::Ptr> values;
     if (json.Get("results", values) == false || values.empty())
     {
-        _logger->LogDebugMsg(QString("[%1] Empty results section in %2").arg(_title).arg(json.ToString()));
+        _logger->DebugMsg(QString("[%1] Empty results section in %2").arg(_title).arg(json.ToString()));
 
         return nullptr;
     }
@@ -362,15 +350,16 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
     if (values.size() != 1) {
 
         bool is_match_date, is_match_title;
-        js = SelectOne(_logger, _media_type, _title, values, get_title_fn, is_match_date, is_match_title);
+        js = SelectOne(_media_type, _title, values, get_title_fn, is_match_date, is_match_title);
 
-        if (IConfiguration::Instance().IsDebug()) {
+        _logger->DebugMsg("Multiple results for " + _entry.absoluteFilePath());
+        {
             XmlNode root("Multiple results");
             root.AddAttribute("title", _title);
             root.AddAttribute("path", _entry.absoluteFilePath());
             root.AddChild("selected JSON", js->ToString());
             root.AddChild("Complete JSON", json.ToString());
-            _logger->LogDebugMsg(root.Dump());
+            _logger->LogMessage(root.Dump(), Logging::LogLevel::Detailed);
         }
     }
 
@@ -411,7 +400,7 @@ CommonMedia::CreateXml() {
     std::map<QString, XmlNode> xmls;
     if (_details == nullptr)
     {
-        _logger->LogDebugMsg("This should never happen! No Json to create XML from!");
+        _logger->DebugMsg("This should never happen! No Json to create XML from!");
         return xmls;
     }
 
@@ -459,7 +448,7 @@ CommonMedia::initCore(QString result_in_json) {
 
     if (result_in_json.isEmpty())
     {
-        _logger->LogDebugMsg("Empty json for" + _title); //network error?
+        _logger->DebugMsg("Empty json for" + _title); //network error?
         return false;
     }
 
@@ -472,7 +461,7 @@ CommonMedia::initCore(QString result_in_json) {
         root.AddAttribute("message", msg);
         root.AddAttribute("path", _entry.absoluteFilePath());
         root.AddChild("CompleteJSON", json->ToString());
-        _logger->LogDebugMsg(root.Dump());
+        _logger->DebugMsg(root.Dump());
         return false;
     }
 

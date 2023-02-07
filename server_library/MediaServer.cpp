@@ -30,14 +30,14 @@ MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
         auto root = JsonNode::Parse(logger, msg);
         if (root->Has(KeyWords(Keys::NodeType)) == false)
         {
-            logger->LogMessage("Invalid node type: " + msg);
+            logger->Error("Invalid node type: " + msg);
             continue;
         }
 
         int type = root->GetInt(KeyWords(Keys::NodeType));
         if (type < 0 || static_cast<int>(Actions::Last) <= type)
         {
-            logger->LogMessage("Invalid node type: " + msg);
+            logger->Error("Invalid node type: " + msg);
             continue;
         }
 
@@ -144,14 +144,14 @@ MediaServer::processMessage(QString& message) {
     auto root = JsonNode::Parse(_logger, message);
     if (root->Has(KeyWords(Keys::NodeType)) == false)
     {
-        _logger->LogMessage("Invalid node type: " + message);
+        _logger->Error("Invalid node type: " + message);
         return;
     }
 
     int type = root->GetInt(KeyWords(Keys::NodeType));
     if (type < 0 || static_cast<int>(Actions::Last) <= type)
     {
-        _logger->LogMessage("Invalid node type: " + message);
+        _logger->Error("Invalid node type: " + message);
         return;
     }
 
@@ -216,7 +216,7 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
     }
 
     if (media->Init() == false){
-        _logger->LogMessage("Failed to process " + path);
+        _logger->Error("Failed to process " + path);
         return;
     }
 
@@ -258,7 +258,7 @@ MediaServer::loadCache(){
     }
 
     if (num_retry == max_retry){
-        _logger->LogMessage("Failed to open cache file. Terminate");
+        _logger->Error("Failed to open cache file. Terminate");
         _continue = false;
     }
 }
@@ -271,7 +271,7 @@ MediaServer::saveCache(){
         return false;
 
     QTextStream stream(&file);
-    for(auto item : _cache){
+    for(auto&& item :  qAsConst(_cache)){
         stream << item << Qt::endl;
     }
     file.close();

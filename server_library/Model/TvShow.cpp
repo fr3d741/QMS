@@ -86,7 +86,7 @@ GatherEpisodesFromFS(Logging::ILogger::Ptr logger, QDir dir_entry, std::map<std:
             {
                 XmlNode root("Incorrect file pattern");
                 root.AddAttribute("file", file_entry.absoluteFilePath());
-                logger->LogDebugMsg(root.Dump());
+                logger->DebugMsg(root.Dump());
                 continue;
             }
 
@@ -226,12 +226,12 @@ TvShow::Init() {
     if (initCore(result_in_json))
         return true;
 
-    _logger->LogDebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
+    _logger->DebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
     result_in_json = RestApi::SearchTvWithoutYear(_title, _logger);
     if (initCore(result_in_json))
         return true;
 
-    _logger->LogDebugMsg(QString("Searching by replaceing character for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
+    _logger->DebugMsg(QString("Searching by replaceing character for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
     QString new_title;
     for(auto c : _title) {
         if (c.isDigit() || c.isLetter() || c == '(' || c == ')')
@@ -304,7 +304,7 @@ TvShow::initCore(QString result_in_json) {
     if (result_in_json.isEmpty())
     {
         auto msg = "Empty request response for " + _title;
-        _logger->LogDebugMsg(msg);
+        _logger->DebugMsg(msg);
         return false;
     }
 
@@ -315,7 +315,7 @@ TvShow::initCore(QString result_in_json) {
         root.AddAttribute("error", "Cannot find details for " + _title);
         root.AddAttribute("path", _entry.absoluteFilePath());
         root.AddChild("json", result_in_json);
-        _logger->LogDebugMsg(root.Dump());
+        _logger->DebugMsg(root.Dump());
         return false;
     }
 

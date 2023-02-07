@@ -48,7 +48,10 @@ Logger::Stop() {
 }
 
 void
-Logger::LogMessage(const QString& msg) {
+Logger::LogMessage(const QString& msg, LogLevel level) {
+
+    if (_current_logLevel < level)
+        return;
 
     XmlNode root("entry");
     root.AddAttribute("time_stamp", GetTimeStamp());
@@ -61,11 +64,27 @@ Logger::LogMessage(const QString& msg) {
 }
 
 void
-Logger::LogDebugMsg(const QString& msg){
+Logger::SetLogLevel(LogLevel log_level){
+    _current_logLevel = log_level;
+}
 
-    if (IConfiguration::Instance().IsDebug() == false)
-        return;
-    LogMessage(msg);
+void
+Logger::IncreaseLogLevel(){
+
+    constexpr const int max_level = static_cast<int>(LogLevel::All);
+    auto next_log_level = static_cast<int>(_current_logLevel);
+    ++next_log_level;
+    if (next_log_level < max_level)
+        _current_logLevel = static_cast<LogLevel>(next_log_level);
+}
+
+void
+Logger::DecreaseLogLevel(){
+
+    auto next_log_level = static_cast<int>(_current_logLevel);
+    --next_log_level;
+    if (0 <= next_log_level)
+        _current_logLevel = static_cast<LogLevel>(next_log_level);
 }
 
 void
@@ -81,7 +100,7 @@ Logger::startCore(){
 
         if (replica_messages != nullptr && !replica_messages->empty()) {
             QTextStream stream(&_logger_file);
-            for (auto msg : *replica_messages) {
+            for (auto&& msg : *replica_messages) {
                 stream << msg << Qt::endl;
             }
             stream.flush();

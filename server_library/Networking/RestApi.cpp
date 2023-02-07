@@ -60,7 +60,7 @@ SendRequest(const QString& request_str, Logging::ILogger::Ptr log, const QString
     std::string result;
     CURL* curl = curl_easy_init();
     if (curl == nullptr){
-        log->LogDebugMsg(QString("CURL init failed"));
+        log->Error(QString("CURL init failed"));
         return "";
     }
 
@@ -75,12 +75,11 @@ SendRequest(const QString& request_str, Logging::ILogger::Ptr log, const QString
 #endif //  DISABLE_REST_API
 
     if (res != CURLE_OK) {
-        log->LogDebugMsg(QString("Error: %1, Request: %2").arg(res).arg(request_str));
+        log->DebugMsg(QString("Error: %1, Request: %2").arg(res).arg(request_str));
         return "";
     }
 
-    if (IConfiguration::Instance().IsLogRequest())
-        log->LogDebugMsg(request_str);
+    log->LogMessage(request_str, Logging::LogLevel::All);
 
     return QString::fromStdString(result);
 }
