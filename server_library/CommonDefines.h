@@ -21,6 +21,7 @@ enum class Actions {
     Path_Update,
     Test,
     Quit,
+    Rescan,
     Last
 };
 

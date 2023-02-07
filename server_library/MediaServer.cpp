@@ -60,6 +60,20 @@ MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
     return messages;
 }
 
+static int
+GetMediaType(QString entry, const std::map<QString, int>& path_types){
+
+    if (path_types.count(entry))
+        return path_types.at(entry);
+
+    QFileInfo info(entry);
+    auto d = info.dir();
+    if (d.isRoot())
+        return -1;
+
+    return GetMediaType(d.absolutePath(), path_types);
+}
+
 MediaServer::MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer)
     : _logger(logger)
     , _queue(queue)
@@ -71,8 +85,12 @@ void
 MediaServer::Start() {
 
     std::list<QString> local_storage;
-    std::chrono::steady_clock::time_point clock;
-    bool count_started = false;
+    std::chrono::steady_clock::time_point process_clock;
+    std::chrono::steady_clock::time_point idle_clock;
+    bool process_count_started = false;
+
+    loadCache();
+
     while (_continue) {
 
         if (_queue->HasMessage()) {
@@ -81,25 +99,33 @@ MediaServer::Start() {
                 local_storage.push_back(msg.front());
                 msg.pop();
             }
-            clock = std::chrono::steady_clock::now();
-            count_started = true;
+            process_clock = std::chrono::steady_clock::now();
+            process_count_started = true;
         }
 
-        if (count_started) {
+        if (process_count_started) {
 
             auto now = std::chrono::steady_clock::now();
-            if (9s <= (now - clock)) {
+            if (9s <= (now - process_clock)) {
 
-                count_started = false;
+                process_count_started = false;
 
                 auto messages = MergeMessages(local_storage, _logger);
                 local_storage.clear();
 
-                for (auto item : messages) {
+                for (auto item : messages)
                     processMessage(item);
-                }
-//                std::cout << "finished " <<std::endl;
-//                break;
+
+                idle_clock = std::chrono::steady_clock::now();
+            }
+        }
+
+        if (_dirty_cache){
+            auto now = std::chrono::steady_clock::now();
+            if (9s <= (now - idle_clock)) {
+                if (saveCache())
+                    _dirty_cache = false;
+                idle_clock = std::chrono::steady_clock::now();
             }
         }
 
@@ -130,48 +156,24 @@ MediaServer::processMessage(QString& message) {
     }
 
     switch (static_cast<Actions>(type)) {
-        case Actions::Path_Update: {
-            QString path = root->GetString(KeyWords(Keys::Message));
-            auto media_type = (MediaType)_path_types[path];
-
-            QDir dir(path);
-            for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs)) {
-
-                auto path = dir_entry.absoluteFilePath();
-                { // do not parse until cache cleared
-                    
-                    if (_cache.contains(path))
-                        continue;
-                    _cache.insert(path);
-                }
-
-                qDebug() << path;
-
-                std::shared_ptr<Media::CommonMedia> media;
-                switch (media_type)
-                {
-                    case Movie:
-                        media = std::make_shared<Media::CommonMedia>(_logger, dir_entry);
-                        break;
-                    case TvShow:
-                        media = std::make_shared<Media::TvShow>(_logger, dir_entry);
-                        break;
-                    default:
-                        break;
-                }
-
-                if (media->Init() == false){
-                    _logger->LogMessage("Failed to process " + path);
-                    continue;
-                }
-
-                auto nodes = media->CreateXml();
-
-                for (auto&& it : nodes) {
-
-                    _writer->Write(it.first, it.second.Dump());
+        case Actions::Rescan:{
+                QString path = root->GetString(KeyWords(Keys::Message));
+                if (QFileInfo::exists(path)){
+                    QFileInfo info(path);
+                    auto type = GetMediaType(path, _path_types);
+                    _cache.remove(path);
+                    _dirty_cache = true;
+                    updatePath(info, static_cast<MediaType>(type));
                 }
             }
+            break;
+        case Actions::Path_Update: {
+                QString path = root->GetString(KeyWords(Keys::Message));
+                auto media_type = (MediaType)_path_types[path];
+
+                QDir dir(path);
+                for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
+                    updatePath(dir_entry, media_type);
             }
             break;
         case Actions::Test:
@@ -184,5 +186,94 @@ MediaServer::processMessage(QString& message) {
         default:
             break;
     }
+}
 
+void
+MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
+
+    auto path = dir_entry.absoluteFilePath();
+    { // do not parse until cache cleared
+
+        if (_cache.contains(path))
+            return;
+        _cache.insert(path);
+        _dirty_cache = true;
+    }
+
+    qDebug() << path;
+
+    std::shared_ptr<Media::CommonMedia> media;
+    switch (media_type)
+    {
+        case Movie:
+            media = std::make_shared<Media::CommonMedia>(_logger, dir_entry);
+            break;
+        case TvShow:
+            media = std::make_shared<Media::TvShow>(_logger, dir_entry);
+            break;
+        default:
+            break;
+    }
+
+    if (media->Init() == false){
+        _logger->LogMessage("Failed to process " + path);
+        return;
+    }
+
+    auto nodes = media->CreateXml();
+    for (auto&& it : nodes) {
+
+        _writer->Write(it.first, it.second.Dump());
+    }
+}
+
+static bool
+loadCache(QSet<QString>& cache){
+
+    if (!QFileInfo::exists("cache"))
+        return true;
+
+    QFile file("cache");
+    if (file.open(QIODevice::ReadOnly) == false)
+        return false;
+
+    cache.clear();
+
+    QTextStream stream(&file);
+    for(auto item : cache){
+        cache.insert(stream.readLine());
+    }
+    file.close();
+    return true;
+}
+
+void
+MediaServer::loadCache(){
+
+    const int max_retry = 30;
+    int num_retry = 0;
+    while(num_retry < max_retry && ::loadCache(_cache) == false){
+        num_retry++;
+        std::this_thread::sleep_for(1s);
+    }
+
+    if (num_retry == max_retry){
+        _logger->LogMessage("Failed to open cache file. Terminate");
+        _continue = false;
+    }
+}
+
+bool
+MediaServer::saveCache(){
+
+    QFile file("cache");
+    if (file.open(QIODevice::WriteOnly) == false)
+        return false;
+
+    QTextStream stream(&file);
+    for(auto item : _cache){
+        stream << item << Qt::endl;
+    }
+    file.close();
+    return true;
 }

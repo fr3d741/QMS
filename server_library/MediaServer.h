@@ -11,6 +11,7 @@
 #include <map>
 
 #include <QSet>
+#include <QFileInfo>
 
 class DLL MediaServer {
 
@@ -20,6 +21,7 @@ class DLL MediaServer {
     std::map<QString, int> _path_types;
     IStreamWriter::Ptr _writer;
     bool _continue = true;
+    bool _dirty_cache = false;
 
 public:
     MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer);
@@ -29,4 +31,7 @@ public:
 
 private:
     void processMessage(QString& message);
+    void updatePath(QFileInfo dir_entry, MediaType media_type);
+    void loadCache();
+    bool saveCache();
 };

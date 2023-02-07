@@ -16,7 +16,7 @@ TmdbWords(TmdbTags key, int media_type) {
     
     constexpr wordsArray movies = { "original_title", "id", "imdb_id", "genres","images", "posters", "iso_639_1", "file_path", "translations", "data", "title", "release_date", "belongs_to_collection", "name",
         "overview", "runtime", "keywords", "cast", "credits", "crew", "character", "profile_path", "","","", "results", "", "", "", "", "",""};
-    constexpr wordsArray tvshows = { "original_name", "id", "imdb_id", "genres","images", "posters", "iso_639_1", "file_path", "translations", "data", "name", "release_date", "belongs_to_collection", "name",
+    constexpr wordsArray tvshows = { "original_name", "id", "imdb_id", "genres","images", "posters", "iso_639_1", "file_path", "translations", "data", "name", "first_air_date", "belongs_to_collection", "name",
         "overview", "runtime", "keywords", "cast", "credits", "crew", "character", "profile_path", "seasons", "season_number", "episode_count", "results", "number_of_seasons", "group_count", "groups", "episodes", 
         "episode_number","order"};
 

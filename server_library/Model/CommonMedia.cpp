@@ -99,9 +99,7 @@ SelectOne(Logging::ILogger::Ptr logger, MediaType media_type, const QString& exp
     if (is_match_date && is_match_title) {
         if (IConfiguration::Instance().IsDebug()) {
             XmlNode root("Multiple results");
-            root.AddAttribute("title", expected_title);
-            root.AddChild("selected", chosen->ToString());
-
+            root.AddAttribute("path", expected_title);
             for (auto item : result_mapping)
             {
                 root.AddChild("Element", item.first._hash);
@@ -366,7 +364,7 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
         bool is_match_date, is_match_title;
         js = SelectOne(_logger, _media_type, _title, values, get_title_fn, is_match_date, is_match_title);
 
-        if (!is_match_date || !is_match_title) {
+        if (IConfiguration::Instance().IsDebug()) {
             XmlNode root("Multiple results");
             root.AddAttribute("title", _title);
             root.AddAttribute("path", _entry.absoluteFilePath());
