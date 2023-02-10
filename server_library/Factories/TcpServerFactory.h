@@ -8,5 +8,5 @@
 
 class DLL TcpServerFactory {
 public:
-    static std::unique_ptr<Networking::ITcpServer> CreateTcpServer(IMessageQueue::Ptr messageQueue);
+    static Networking::ITcpServer::Ptr CreateTcpServer(IMessageQueue::Ptr messageQueue);
 };

@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <vector>
+#include <iterator>
 
 class JsonNodeImpl;
 
@@ -18,8 +19,10 @@ class DLL JsonNode {
 public:
     typedef std::shared_ptr<JsonNode> Ptr;
 
-    void Add(QString key, int value);
-    void Add(QString key, QString value);
+    void Add(const QString& key, int value);
+    void Add(const QString& key, QString value);
+    void Add(const QString& key, QStringList array);
+    void Add(const QString& key, const std::vector<Ptr>& array);
 //    void Add(const std::string& key, double value);
 //    void Add(const std::string& key, bool value);
 //    void Add(const std::string& key, Ptr value);

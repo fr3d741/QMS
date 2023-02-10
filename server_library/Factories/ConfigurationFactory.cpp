@@ -17,5 +17,5 @@ ConfigurationFactory::LoadConfiguration(Logging::ILogger::Ptr logger, const std:
     stream.close();
 
     auto node = JsonNode::Parse(logger, QString::fromStdString(buffer.str()));
-    return std::make_shared<Configuration>(node);
+    return std::make_shared<Configuration>(node, logger);
 }

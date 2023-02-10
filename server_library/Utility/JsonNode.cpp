@@ -57,15 +57,33 @@ JsonNode::JsonNode(Logging::ILogger::Ptr logger)
 }
 
 void
-JsonNode::Add(QString key, int value) {
+JsonNode::Add(const QString& key, int value) {
 
     _impl->json_object.insert(key, QJsonValue(value));
 }
 
 void
-JsonNode::Add(QString key, QString value) {
+JsonNode::Add(const QString& key, QString value) {
 
     _impl->json_object.insert(key, QJsonValue(value));
+}
+
+void
+JsonNode::Add(const QString& key, QStringList array){
+
+    auto jsn_array = QJsonArray::fromStringList(array);
+    _impl->json_object.insert(key, jsn_array);
+}
+
+void
+JsonNode::Add(const QString& key, const std::vector<Ptr>& array){
+
+    QJsonArray json_array;
+    for(auto ptr : array){
+        QJsonValue val(ptr->_impl->json_object);
+        json_array.append(val);
+    }
+    _impl->json_object.insert(key, json_array);
 }
 
 bool

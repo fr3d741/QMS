@@ -10,7 +10,8 @@
 using namespace std::chrono_literals;
 using namespace Networking;
 
-static QString Process(QTcpSocket* socket){
+static QString
+process(QTcpSocket* socket){
 
     if (socket->waitForReadyRead() == false)
         return "";
@@ -20,6 +21,17 @@ static QString Process(QTcpSocket* socket){
 
     auto string = QString(socket->readAll());
     return string;
+}
+
+static bool
+send(const QString& msg, QTcpSocket* socket){
+
+    if (socket->isValid() == false)
+        return false;
+
+    socket->write(msg.toUtf8());
+    socket->flush();
+    return true;
 }
 
 TcpServer::TcpServer(std::weak_ptr<Logging::ILogger> logger, IMessageQueue::Ptr messageQueue)
@@ -39,16 +51,57 @@ TcpServer::Stop(){
     _stop_not_requested.store(false);
 }
 
+void
+TcpServer::SendResponse(QString msg){
+
+    std::lock_guard<std::mutex> guard(_mutex);
+    _outgoing.push_back(msg);
+}
+
 int TcpServer::listenCore(unsigned short port) {
 
     QTcpServer server;
     server.listen(QHostAddress::Any, port);
+    QTcpSocket* last_active = nullptr;
 
     while(_stop_not_requested.load()){
 
-        if (server.waitForNewConnection(1000)){
+        if (last_active != nullptr){
 
-            auto result = Process(server.nextPendingConnection());
+            auto err = last_active->error();
+            if (last_active->state() != QAbstractSocket::ConnectedState || err)
+            {
+                last_active->close();
+                last_active->deleteLater();
+                last_active = nullptr;
+                continue;
+            }
+
+            if (last_active->bytesAvailable()){
+                auto result = process(last_active);
+                if (result.isEmpty())
+                    continue;
+
+                _messageQueue->Add(result);
+                continue;
+            }
+
+            std::list<QString> outgoing_replica;
+            {
+                std::lock_guard<std::mutex> guard(_mutex);
+                if (_outgoing.empty())
+                    continue;
+
+                outgoing_replica.swap(_outgoing);
+            }
+
+            for(auto&& msg : outgoing_replica){
+                send(msg, last_active);
+            }
+        } else if (server.waitForNewConnection(1000)){
+
+            last_active = server.nextPendingConnection();
+            auto result = process(last_active);
             if (result.isEmpty())
                 continue;
 

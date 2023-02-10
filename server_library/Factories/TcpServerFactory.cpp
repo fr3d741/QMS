@@ -5,9 +5,9 @@
 
 #include <memory>
 
-std::unique_ptr<Networking::ITcpServer> 
+std::shared_ptr<Networking::ITcpServer>
 TcpServerFactory::CreateTcpServer(IMessageQueue::Ptr messageQueue) {
 
-    return std::make_unique<Networking::TcpServer>(std::weak_ptr<Logging::ILogger>(), messageQueue);
+    return std::make_shared<Networking::TcpServer>(std::weak_ptr<Logging::ILogger>(), messageQueue);
 }
     

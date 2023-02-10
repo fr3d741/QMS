@@ -4,6 +4,7 @@
 #include <Model/CommonMedia.h>
 #include <Model/TvShow.h>
 #include <Utility/GeneralUtilities.h>
+#include <Configuration/IConfiguration.h>
 
 #include <chrono>
 #include <filesystem>
@@ -74,10 +75,11 @@ GetMediaType(QString entry, const std::map<QString, int>& path_types){
     return GetMediaType(d.absolutePath(), path_types);
 }
 
-MediaServer::MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer)
+MediaServer::MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer, Networking::ITcpServer::Ptr server)
     : _logger(logger)
     , _queue(queue)
-    , _writer(writer) {
+    , _writer(writer)
+    , _server(server) {
 
 }
 
@@ -113,8 +115,9 @@ MediaServer::Start() {
                 auto messages = MergeMessages(local_storage, _logger);
                 local_storage.clear();
 
+                auto&& paths = IConfiguration::Instance().GetPaths();
                 for (auto item : messages)
-                    processMessage(item);
+                    processMessage(item, paths);
 
                 idle_clock = std::chrono::steady_clock::now();
             }
@@ -133,13 +136,8 @@ MediaServer::Start() {
     }
 }
 
-void
-MediaServer::RegisterPath(const QString& path, int type) {
-    _path_types[path] = type;
-}
-
 void 
-MediaServer::processMessage(QString& message) {
+MediaServer::processMessage(QString& message, const std::map<QString, int>& path_types) {
 
     auto root = JsonNode::Parse(_logger, message);
     if (root->Has(KeyWords(Keys::NodeType)) == false)
@@ -160,7 +158,7 @@ MediaServer::processMessage(QString& message) {
                 QString path = root->GetString(KeyWords(Keys::Message));
                 if (QFileInfo::exists(path)){
                     QFileInfo info(path);
-                    auto type = GetMediaType(path, _path_types);
+                    auto type = GetMediaType(path, path_types);
                     _cache.remove(path);
                     _dirty_cache = true;
                     updatePath(info, static_cast<MediaType>(type));
@@ -169,7 +167,7 @@ MediaServer::processMessage(QString& message) {
             break;
         case Actions::Path_Update: {
                 QString path = root->GetString(KeyWords(Keys::Message));
-                auto media_type = (MediaType)_path_types[path];
+                auto media_type = (MediaType)path_types.at(path);
 
                 QDir dir(path);
                 for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
@@ -181,6 +179,13 @@ MediaServer::processMessage(QString& message) {
             break;
         case Actions::Quit:
             _continue = false;
+            break;
+        case Actions::Request: {
+                auto msg = IConfiguration::Instance().DumpConfiguration();
+                _server->SendResponse(msg);
+            }
+            break;
+        case Actions::ReConfigure:
             break;
         case Actions::Last:
         default:

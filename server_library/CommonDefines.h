@@ -22,6 +22,8 @@ enum class Actions {
     Test,
     Quit,
     Rescan,
+    ReConfigure,
+    Request,
     Last
 };
 
