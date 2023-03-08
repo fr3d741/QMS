@@ -73,7 +73,7 @@ Configuration::DumpConfiguration(){
     node->Add(LOG_LEVEL, _log_level);
     std::vector<JsonNode::Ptr> array;
     array.reserve(_paths.size());
-    for(auto item : _paths){
+    for(auto&& item : _paths){
         auto child = JsonNode::Create(_logger);
         child->Add(TYPE, item.second);
         child->Add(PATH, item.first);

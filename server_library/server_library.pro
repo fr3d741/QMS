@@ -34,7 +34,8 @@ SOURCES += \
     Utility/MessageQueue.cpp \
     Utility/ScopedFunction.cpp \
     Utility/StreamWriter.cpp \
-    Utility/XmlNode.cpp
+    Utility/XmlNode.cpp \
+    Utility/timer.cpp
 
 HEADERS += \
     CommonDefines.h \
@@ -60,7 +61,8 @@ HEADERS += \
     Utility/MessageQueue.h \
     Utility/ScopedFunction.h \
     Utility/StreamWriter.h \
-    Utility/XmlNode.h
+    Utility/XmlNode.h \
+    Utility/timer.h
 
 # Default rules for deployment.
 unix {

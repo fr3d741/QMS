@@ -24,6 +24,7 @@ enum class Actions {
     Rescan,
     ReConfigure,
     Request,
+    Ping,
     Last
 };
 

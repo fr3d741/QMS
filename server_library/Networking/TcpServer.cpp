@@ -1,4 +1,5 @@
 #include <Networking/TcpServer.h>
+#include <Utility/timer.h>
 
 #include <thread>
 #include <iostream>
@@ -63,13 +64,15 @@ int TcpServer::listenCore(unsigned short port) {
     QTcpServer server;
     server.listen(QHostAddress::Any, port);
     QTcpSocket* last_active = nullptr;
+    Timer timer;
 
     while(_stop_not_requested.load()){
 
         if (last_active != nullptr){
 
             auto err = last_active->error();
-            if (last_active->state() != QAbstractSocket::ConnectedState || err)
+            auto elapsed = timer.ElapsedSeconds();
+            if (last_active->state() != QAbstractSocket::ConnectedState || -1 < err || 60 <= elapsed)
             {
                 last_active->close();
                 last_active->deleteLater();
@@ -98,9 +101,21 @@ int TcpServer::listenCore(unsigned short port) {
             for(auto&& msg : outgoing_replica){
                 send(msg, last_active);
             }
-        } else if (server.waitForNewConnection(1000)){
+            continue;
+        }
+
+        {
+            std::lock_guard<std::mutex> guard(_mutex);
+            if (!_outgoing.empty())
+            {
+                _outgoing.clear();
+            }
+        }
+
+        if (server.waitForNewConnection(1000)){
 
             last_active = server.nextPendingConnection();
+            timer.ReStart();
             auto result = process(last_active);
             if (result.isEmpty())
                 continue;

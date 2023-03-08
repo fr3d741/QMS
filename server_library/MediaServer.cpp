@@ -1,9 +1,13 @@
 #include <MediaServer.h>
 #include <CommonDefines.h>
-#include <Utility/JsonNode.h>
+
 #include <Model/CommonMedia.h>
 #include <Model/TvShow.h>
+
 #include <Utility/GeneralUtilities.h>
+#include <Utility/JsonNode.h>
+#include <Utility/timer.h>
+
 #include <Configuration/IConfiguration.h>
 
 #include <chrono>
@@ -87,8 +91,8 @@ void
 MediaServer::Start() {
 
     std::list<QString> local_storage;
-    std::chrono::steady_clock::time_point process_clock;
-    std::chrono::steady_clock::time_point idle_clock;
+    Timer timer;
+    Timer idle_timer;
     bool process_count_started = false;
 
     loadCache();
@@ -101,14 +105,14 @@ MediaServer::Start() {
                 local_storage.push_back(msg.front());
                 msg.pop();
             }
-            process_clock = std::chrono::steady_clock::now();
+
+            timer.ReStart();
             process_count_started = true;
         }
 
         if (process_count_started) {
 
-            auto now = std::chrono::steady_clock::now();
-            if (9s <= (now - process_clock)) {
+            if (60 <= timer.ElapsedSeconds()) {
 
                 process_count_started = false;
 
@@ -119,16 +123,16 @@ MediaServer::Start() {
                 for (auto item : messages)
                     processMessage(item, paths);
 
-                idle_clock = std::chrono::steady_clock::now();
+                idle_timer.ReStart();
             }
         }
 
         if (_dirty_cache){
-            auto now = std::chrono::steady_clock::now();
-            if (9s <= (now - idle_clock)) {
+
+            if (10 <= idle_timer.ElapsedSeconds()) {
                 if (saveCache())
                     _dirty_cache = false;
-                idle_clock = std::chrono::steady_clock::now();
+                idle_timer.ReStart();
             }
         }
 
@@ -166,12 +170,13 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
             }
             break;
         case Actions::Path_Update: {
-                QString path = root->GetString(KeyWords(Keys::Message));
-                auto media_type = (MediaType)path_types.at(path);
 
-                QDir dir(path);
-                for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
-                    updatePath(dir_entry, media_type);
+                for (auto const& item : path_types){
+                    QDir dir(item.first);
+                    auto media_type = static_cast<MediaType>(item.second);
+                    for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
+                        updatePath(dir_entry, media_type);
+                }
             }
             break;
         case Actions::Test:
@@ -186,6 +191,9 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
             }
             break;
         case Actions::ReConfigure:
+            break;
+        case Actions::Ping:
+            _server->SendResponse("pong");
             break;
         case Actions::Last:
         default:

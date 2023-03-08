@@ -81,9 +81,10 @@ int main()
     RestApi::ApiKey() = config->GetApiKey();
     auto message_queue = MessageQueueFactory::CreateMessageQueue();
 
+    auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
 #ifdef TEST
     auto writer = std::make_shared<MockWriter>();
-    auto server = MediaServer(logger, message_queue, writer);
+    auto server = MediaServer(logger, message_queue, writer, tcp_server);
 #else
     auto server = MediaServer(logger, message_queue, std::make_shared<StreamWriter>());
 #endif // TEST
@@ -92,8 +93,6 @@ int main()
     for (auto&& it : config->GetPaths()) {
 
         fs.AddPath(it.first);
-        server.RegisterPath(it.first, it.second);
-        qDebug() << it.first;
 
         {
             auto json = JsonNode::Create(logger);
@@ -105,7 +104,6 @@ int main()
 
     fs.Start();
 
-    auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
     tcp_server->ListenOn(33015);
 
     try {
