@@ -15,6 +15,7 @@ public:
 //    static string Convert(const std::string& str);
 //    static std::string Convert(const QString& str);
 //    static bool Contains(const string& in, const string& what);
+    static bool GetYear(const QString& title, int& year);
     static int ConvertToYear(const QString& str);
     static int ConvertToYear(const std::string& str);
     static int HammingDistance(const QString& str1, const QString& str2);

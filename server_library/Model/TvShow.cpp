@@ -14,18 +14,6 @@
 using namespace Media;
 using G = GeneralUtilities;
 
-static XmlNode
-CreateEpisodeXml(JsonNode::Ptr json) {
-
-    XmlNode root("episodedetails");
-    root.AddChild(KodiWords(KodiTags::title), json->GetString(TmdbWords(TmdbTags::name, MediaType::TvShow)));
-    root.AddChild(KodiWords(KodiTags::season), QString::number(json->GetInt(TmdbWords(TmdbTags::season_number, MediaType::TvShow))));
-    root.AddChild(KodiWords(KodiTags::episode), QString::number(json->GetInt(TmdbWords(TmdbTags::episode_number, MediaType::TvShow))));
-    root.AddChild(KodiWords(KodiTags::plot), json->GetString(TmdbWords(TmdbTags::overview, MediaType::TvShow)));
-
-    return root;
-}
-
 static std::string 
 Format(int season, int episode) {
 
@@ -76,7 +64,7 @@ GatherEpisodesFromFS(Logging::ILogger::Ptr logger, QDir dir_entry, std::map<std:
         for (auto const& file_entry : season.entryInfoList(QDir::NoDotAndDotDot | QDir::Files) ) {
             // Looking for SxxExx pattern to identify episodes
 
-            if (CommonMedia::IsMediaFile(file_entry.completeSuffix()) == false)
+            if (CommonMedia::IsMediaFile(file_entry.fileName()) == false)
                 continue;
 
             const static QRegularExpression episode_filter("S[0-9]{1,3}E[0-9]{1,3}", QRegularExpression::PatternOption::CaseInsensitiveOption);
@@ -162,7 +150,6 @@ static std::map<std::string, JsonNode::Ptr>
 GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons, const QString& show_id, const std::map<std::string, QString>& reference) {
 
     std::map<std::string, JsonNode::Ptr> to_return;
-    int ret_count = 0;
     {
         std::map<std::string, JsonNode::Ptr> episodes_map;
         // Seasons stored with TvShow details
@@ -177,8 +164,9 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
             return episodes_map;
 
         int count = count_intersection(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end());
-        if (ret_count < count) {
+        if (to_return.size() < count) {
             to_return = std::move(episodes_map);
+
         }
     }
 
@@ -206,7 +194,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
                 return episodes_map;
 
             auto count = count_intersection(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end());
-            if (ret_count < count) {
+            if (to_return.size() < count) {
                 to_return = std::move(episodes_map);
             }
         }
@@ -294,7 +282,30 @@ TvShow::CreateEpisodeNfos(std::map<QString, XmlNode>& result_map) {
         QFileInfo info(item.second);
 
         auto path = info.absolutePath() + "/" + info.completeBaseName().append(".nfo");
-        result_map[path] = CreateEpisodeXml(epiosde_json);
+        result_map[path] = CreateEpisodeXml(epiosde_json, item.first);
+    }
+}
+
+void
+TvShow::extractImages(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb){
+
+    CommonMedia::extractImages(root, json, tmdb);
+    if (!json->Has(tmdb(TmdbTags::seasons)))
+        return;
+
+    auto seasons = json->GetArray(tmdb(TmdbTags::seasons));
+    for(auto i = 0; i < seasons.size(); ++i){
+        auto season = seasons[i];
+        if (season->Has(tmdb(TmdbTags::poster_path)) == false)
+            continue;
+
+        auto poster = season->GetString(tmdb(TmdbTags::poster_path));
+        QString link = tmdb_image_link + poster;
+        auto season_nr = season->GetInt(tmdb(TmdbTags::season_number));
+        XmlNode& thumb = root.AddChild(KodiWords(KodiTags::thumb), link);
+        thumb.AddAttribute(KodiWords(KodiTags::aspect), "poster");
+        thumb.AddAttribute(KodiWords(KodiTags::type), "season");
+        thumb.AddAttribute(KodiWords(KodiTags::season), QString::number(season_nr));
     }
 }
 
@@ -320,5 +331,28 @@ TvShow::initCore(QString result_in_json) {
     }
 
     return true;
+}
+
+XmlNode
+TvShow::CreateEpisodeXml(JsonNode::Ptr json, const std::string& episode_nr) {
+
+    const std::regex number_filter("[0-9]{1,3}");
+    auto it = std::sregex_iterator(episode_nr.begin(), episode_nr.end(), number_filter);
+
+    const int season = stoi(it->str());
+    ++it;
+    const int episode = stoi(it->str());
+
+    XmlNode root("episodedetails");
+    root.AddChild(KodiWords(KodiTags::title), json->GetString(TmdbWords(TmdbTags::name, MediaType::TvShow)));
+    root.AddChild(KodiWords(KodiTags::season), QString::number(season));
+    root.AddChild(KodiWords(KodiTags::episode), QString::number(episode));
+    root.AddChild(KodiWords(KodiTags::plot), json->GetString(TmdbWords(TmdbTags::overview, MediaType::TvShow)));
+    static const char* crew = TmdbWords(TmdbTags::crew, MediaType::TvShow);
+    if (json->Has(crew)){
+        extractDirectors(root, json->GetArray(crew));
+    }
+
+    return root;
 }
 

@@ -22,9 +22,7 @@
 #include <QTextStream>
 #include <QDebug>
 
-#define TEST
-
-#ifdef TEST
+#ifdef _DEBUG
 
 #include <Utility/GeneralUtilities.h>
 
@@ -68,7 +66,7 @@ public:
 
 #endif // TEST
 
-int main()
+int main(int argc, char** argv)
 {
     std::setlocale(LC_ALL, "");
     std::locale::global(std::locale(""));
@@ -78,47 +76,92 @@ int main()
     IConfiguration::Ptr config = ConfigurationFactory::LoadConfiguration(logger, "config.json");
     IConfiguration::Instance(config);
 
+    logger->SetLogLevel(static_cast<Logging::LogLevel>(config->GetLogLevel()));
     RestApi::ApiKey() = config->GetApiKey();
     auto message_queue = MessageQueueFactory::CreateMessageQueue();
 
     auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
-#ifdef TEST
+#ifdef _DEBUG
     auto writer = std::make_shared<MockWriter>();
     auto server = MediaServer(logger, message_queue, writer, tcp_server);
 #else
-    auto server = MediaServer(logger, message_queue, std::make_shared<StreamWriter>());
+    auto server = MediaServer(logger, message_queue, std::make_shared<StreamWriter>(), tcp_server);
 #endif // TEST
 
-    File_System::FileSystemWatcher fs(logger, message_queue);
-    for (auto&& it : config->GetPaths()) {
+    //File_System::FileSystemWatcher fs(logger, message_queue);
 
-        fs.AddPath(it.first);
+    //fs.Start();
 
-        {
-            auto json = JsonNode::Create(logger);
-            json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Path_Update));
-            json->Add(KeyWords(Keys::Message), it.first);
-            message_queue->Add(json->ToString());
+    //tcp_server->ListenOn(33015);
+
+    enum Param{
+        UpdateAll,
+        SinglePath,
+        UpdateType
+
+    };
+
+    Param options = UpdateAll;
+    int type = -1;
+
+    if (1 < argc){
+
+        for(char* c = argv[1]; *c; ++c)
+            if (*c < '0' || '9' < *c){
+                options = SinglePath;
+                break;
+            }
+
+        if (options == UpdateAll){
+            options = UpdateType;
+            type = std::stoi(argv[1]);
         }
     }
 
-    fs.Start();
-
-    tcp_server->ListenOn(33015);
 
     try {
-        server.Start();
+
+        switch(options){
+            case UpdateType:
+                for (auto&& it : config->GetPaths()) {
+
+                    if (it.second != type)
+                        continue;
+
+                    auto json = JsonNode::Create(logger);
+                    json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Rescan));
+                    json->Add(KeyWords(Keys::Message), it.first);
+                    message_queue->Add(json->ToString());
+                    qDebug() << it.first;
+                }
+
+                server.ProcessOnce();
+                break;
+            case SinglePath:
+                server.UpdateSinglePath(argv[1]);
+                break;
+            case UpdateAll:
+                {
+                    auto json = JsonNode::Create(logger);
+                    json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Path_Update));
+                    message_queue->Add(json->ToString());
+                }
+
+                server.ProcessOnce();
+            default:
+                break;
+        }
     }
     catch(...){
 
     }
 
-#ifdef TEST
+#ifdef _DEBUG
     writer->close();
 #endif
 
-    fs.Stop();
-    tcp_server->Stop();
+    //fs.Stop();
+    //tcp_server->Stop();
     logger->Stop();
 
     return 1;

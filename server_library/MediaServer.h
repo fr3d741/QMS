@@ -28,6 +28,8 @@ public:
     MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer, Networking::ITcpServer::Ptr server);
 
     void Start();
+    void ProcessOnce();
+    void UpdateSinglePath(QString path);
 
 private:
     void processMessage(QString& message, const std::map<QString, int>& path_types);

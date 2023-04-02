@@ -14,6 +14,7 @@ namespace Media {
     class CommonMedia
     {
     protected:
+        const char* tmdb_image_link = "https://image.tmdb.org/t/p/original";
         Logging::ILogger::Ptr _logger;
         const QString _title;
         const QFileInfo _entry;
@@ -60,6 +61,10 @@ namespace Media {
         virtual QString GetDetails(QString id);
         virtual QString GetFileName();
         virtual JsonNode::Ptr GetDetails(JsonNode::Ptr json_ptr, std::function<QString (JsonNode::Ptr)> get_title_fn);
+        virtual void extractImages(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb);
+
+        static void extractDirectors(XmlNode& root, std::vector<JsonNode::Ptr> crew);
+        static void extractActors(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb);
     private:
         bool initCore(QString result_in_json);
     };

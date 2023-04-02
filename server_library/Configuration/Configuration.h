@@ -18,5 +18,6 @@ public:
     QString GetApiKey() override;
     bool LoadConfiguration(JsonNode::Ptr json) override;
     QString DumpConfiguration() override;
+    int GetLogLevel() override;
 };
 

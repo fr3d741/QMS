@@ -68,6 +68,7 @@ MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
 static int
 GetMediaType(QString entry, const std::map<QString, int>& path_types){
 
+    entry = entry.toLower();
     if (path_types.count(entry))
         return path_types.at(entry);
 
@@ -136,8 +137,48 @@ MediaServer::Start() {
             }
         }
 
+        _continue = false;
         std::this_thread::sleep_for(100ms);
     }
+}
+
+void
+MediaServer::ProcessOnce(){
+
+    std::list<QString> local_storage;
+
+    loadCache();
+
+    if (_queue->HasMessage()) {
+        auto msg = _queue->BulkPop();
+        while (msg.empty() == false) {
+            local_storage.push_back(msg.front());
+            msg.pop();
+        }
+    }
+
+    auto messages = MergeMessages(local_storage, _logger);
+    local_storage.clear();
+
+    auto&& paths = IConfiguration::Instance().GetPaths();
+    for (auto item : messages)
+        processMessage(item, paths);
+    if (_dirty_cache)
+        saveCache();
+}
+
+void
+MediaServer::UpdateSinglePath(QString path){
+
+    if (!QFileInfo::exists(path))
+        return;
+
+    auto&& paths = IConfiguration::Instance().GetPaths();
+    QFileInfo info(path);
+    auto type = GetMediaType(info.absoluteFilePath(), paths);
+    _cache.remove(path);
+    _dirty_cache = true;
+    updatePath(info, static_cast<MediaType>(type));
 }
 
 void 
@@ -165,7 +206,13 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
                     auto type = GetMediaType(path, path_types);
                     _cache.remove(path);
                     _dirty_cache = true;
-                    updatePath(info, static_cast<MediaType>(type));
+                    if (path_types.count(path)){
+                        QDir path_as_dir(info.absoluteFilePath());
+                        for (auto const& dir_entry : path_as_dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
+                            updatePath(dir_entry, static_cast<MediaType>(type));
+                    }
+                    else
+                        updatePath(info, static_cast<MediaType>(type));
                 }
             }
             break;

@@ -66,6 +66,10 @@ enum class TmdbTags {
     episodes,
     episode_number,
     order,
+    poster_path,
+    backdrop_path,
+    production_companies,
+    tagline,
     Last
 };
 
@@ -94,6 +98,11 @@ enum class KodiTags {
     premiered,
     season,
     episode,
+    dateadded,
+    type,
+    studio,
+    tagline,
+    director,
     Last
 };
 

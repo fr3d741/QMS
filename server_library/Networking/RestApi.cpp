@@ -100,19 +100,7 @@ GetUriEncodedTitleWithoutYear(const QString title){
     return QString(byte_array);
 }
 
-static bool
-GetYear(const QString title, int& year){
-    static QRegularExpression regex("[(][0-9]{4}[)]");
 
-    auto match = regex.match(title);
-    if (match.hasMatch() == false){
-        return false;
-    }
-
-    auto intermediate = match.captured();
-    year = G::ConvertToYear(intermediate);
-    return true;
-}
 
 QString& RestApi::ApiKey() {
     static QString api_key;
@@ -125,7 +113,7 @@ RestApi::SearchMovie(const QString& title, Logging::ILogger::Ptr log){
     auto encoded = GetUriEncodedTitleWithoutYear(title);
     int year;
     QString request = "https://api.themoviedb.org/3/search/movie?api_key=%1&query=" + encoded + "&page=1&include_adult=false";
-    if (GetYear(title, year))
+    if (G::GetYear(title, year))
         request += "&year=" + QString::number(year);
     return SendRequest(request, log, ApiKey());
 }
@@ -152,7 +140,7 @@ RestApi::SearchTv(const QString& title, Logging::ILogger::Ptr log){
     auto encoded = GetUriEncodedTitleWithoutYear(title);
     int year;
     QString request = "https://api.themoviedb.org/3/search/tv?api_key=%1&query=" + encoded + "&page=1&include_adult=false";
-    if (GetYear(title, year))
+    if (G::GetYear(title, year))
         request += "&first_air_date_year=" + QString::number(year);
 
     return SendRequest(request, log, ApiKey());
@@ -161,7 +149,7 @@ RestApi::SearchTv(const QString& title, Logging::ILogger::Ptr log){
 QString
 RestApi::MovieDetails(const QString& id, Logging::ILogger::Ptr log) {
 
-    auto request = "https://api.themoviedb.org/3/movie/" + id + "?api_key=%1&append_to_response=images,translations,keywords&include_image_language=en,hu,null";
+    auto request = "https://api.themoviedb.org/3/movie/" + id + "?api_key=%1&append_to_response=images,translations,keywords,credits&include_image_language=en,hu,null";
     return SendRequest(request, log, ApiKey());
 }
 

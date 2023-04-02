@@ -99,35 +99,6 @@ SelectOne(MediaType media_type, const QString& expected_title, const std::vector
     return chosen;
 }
 
-static void
-extractImages(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb) {
-
-    if (json->Has(tmdb(TmdbTags::images)) == false)
-        return;
-
-    auto object = json->GetPointer(tmdb(TmdbTags::images));
-    if (object == nullptr)
-        return;
-
-    if (object->Has(tmdb(TmdbTags::posters)) == false)
-        return;
-
-    auto array = object->GetArray(tmdb(TmdbTags::posters));
-    for (auto&& item : array) {
-        if (item->Has(tmdb(TmdbTags::iso_639_1)) == false)
-            continue;
-
-        auto lang = item->GetString(tmdb(TmdbTags::iso_639_1));
-        if (lang == "hu" || lang == "en") {
-            auto path = item->GetString(tmdb(TmdbTags::file_path));
-            QString link = "https://image.tmdb.org/t/p/original" + path;
-            XmlNode& child = root.AddChild(KodiWords(KodiTags::thumb), link);
-            child.AddAttribute(KodiWords(KodiTags::aspect), KodiWords(KodiTags::poster));
-            break;
-        }
-    }
-}
-
 static JsonNode::Ptr
 extractCountryLocal(Logging::ILogger::Ptr logger, JsonNode::Ptr json, const char* country_locale, std::function<const char*(TmdbTags key)> fn) {
 
@@ -154,36 +125,6 @@ extractCountryLocal(Logging::ILogger::Ptr logger, JsonNode::Ptr json, const char
     return JsonNode::Create(logger); // empty node
 }
 
-static void
-extractActors(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb) {
-
-    if (json->Has(tmdb(TmdbTags::credits)) == false)
-        return;
-
-    auto credits = json->GetPointer(tmdb(TmdbTags::credits));
-    if (credits->Has(tmdb(TmdbTags::cast)) == false)
-        return;
-
-    auto actors = credits->GetArray(tmdb(TmdbTags::cast));
-    for (auto actor_object : actors) {
-        XmlNode& actor = root.AddChild(KodiWords(KodiTags::actor));
-
-        actor.AddChild(KodiWords(KodiTags::name), actor_object->GetString(tmdb(TmdbTags::name)));
-        actor.AddChild(KodiWords(KodiTags::role), actor_object->GetString(tmdb(TmdbTags::character)));
-
-        auto img = actor_object->GetString(tmdb(TmdbTags::character));
-        QString link = "https://image.tmdb.org/t/p/original";
-        link.append(img);
-        actor.AddChild(KodiWords(KodiTags::thumb), link);
-
-        auto id = QString::number(actor_object->GetInt(tmdb(TmdbTags::id)));
-        QString profile_link = "https://www.themoviedb.org/person/";
-        profile_link.append(id);
-        actor.AddChild(KodiWords(KodiTags::profile), profile_link);
-        actor.AddChild(KodiWords(KodiTags::tmdbid), id);
-    }
-}
-
 CommonMedia::CommonMedia(Logging::ILogger::Ptr logger, QFileInfo entry, MediaType media_type)
     : _logger(logger)
     , _title(entry.fileName())
@@ -200,10 +141,15 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
         switch (prop)
         {
         case title:
-            if (country_local->Has(Tmdb(TmdbTags::title)))
-                root.AddChild(KodiWords(KodiTags::title), country_local->GetString(Tmdb(TmdbTags::title)));
-            else
-                root.AddChild(KodiWords(KodiTags::title), json->GetString(Tmdb(TmdbTags::original_title)));
+            {
+                QString title;
+                if (country_local->Has(Tmdb(TmdbTags::title)))
+                    title = country_local->GetString(Tmdb(TmdbTags::title));
+
+                if (title.isEmpty())
+                    title = json->GetString(Tmdb(TmdbTags::title));
+                root.AddChild(KodiWords(KodiTags::title), title);
+            }
             break;
         case originaltitle:
             root.AddChild(KodiWords(KodiTags::original_title), json->GetString(Tmdb(TmdbTags::original_title)));
@@ -219,9 +165,18 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
 //                    break;
 
 //                std::string year = match.str();
-                auto date_time = QDate::fromString(date);
-                root.AddChild(KodiWords(KodiTags::year), QString::number(date_time.year()));
-                root.AddChild(KodiWords(KodiTags::premiered), date);
+                auto date_time = QDate::fromString(date,"yyyy-MM-dd");
+                if (date_time.isValid()){
+                    root.AddChild(KodiWords(KodiTags::year), QString::number(date_time.year()));
+                    root.AddChild(KodiWords(KodiTags::premiered), date);
+                }
+                else{
+                    int year;
+                    if (G::GetYear(_entry.fileName(), year) == false)
+                        break;
+
+                    root.AddChild(KodiWords(KodiTags::year), QString::number(year));
+                }
             }
             break;
         case ratings:
@@ -234,7 +189,11 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
                 auto ptr = json->GetPointer(Tmdb(TmdbTags::belongs_to_collection));
                 if (ptr == nullptr)
                     break;
+
                 auto name = ptr->GetString(Tmdb(TmdbTags::name));
+                if (name == "")
+                    break;
+
                 XmlNode& set = root.AddChild(KodiWords(KodiTags::set));
                 set.AddChild(KodiWords(KodiTags::name), name);
                 set.AddChild(KodiWords(KodiTags::overview), "");
@@ -245,14 +204,28 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
                 auto plot = country_local->GetString(Tmdb(TmdbTags::overview));
                 root.AddChild(KodiWords(KodiTags::plot), plot);
             }
+            else if (json->Has(Tmdb(TmdbTags::overview))) {
+                auto plot = json->GetString(Tmdb(TmdbTags::overview));
+                root.AddChild(KodiWords(KodiTags::plot), plot);
+            }
             break;
         case outline:
             if (country_local->Has(Tmdb(TmdbTags::overview))) {
                 auto plot = country_local->GetString(Tmdb(TmdbTags::overview));
                 root.AddChild(KodiWords(KodiTags::outline), plot);
             }
+            else if (json->Has(Tmdb(TmdbTags::overview))) {
+                auto plot = json->GetString(Tmdb(TmdbTags::overview));
+                root.AddChild(KodiWords(KodiTags::outline), plot);
+            }
             break;
-        case tagline:
+        case tagline: {
+                QString tagline = country_local->GetString(Tmdb(TmdbTags::tagline));
+                if (tagline.isEmpty())
+                    tagline = json->GetString(Tmdb(TmdbTags::tagline));
+                if (!tagline.isEmpty())
+                    root.AddChild(KodiWords(KodiTags::tagline), tagline);
+            }
             break;
         case runtime:
             if (country_local->Has(Tmdb(TmdbTags::runtime))) {
@@ -288,6 +261,15 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
             }
             break;
         case studio:
+            if (json->Has(Tmdb(TmdbTags::production_companies))){
+                auto studios = json->GetArray(Tmdb(TmdbTags::production_companies));
+                for(auto st : studios){
+                    auto name = st->GetString(Tmdb(TmdbTags::name));
+                    if (name.isEmpty())
+                        continue;
+                    root.AddChild(KodiWords(KodiTags::studio), name);
+                }
+            }
             break;
         case credits:
             break;
@@ -295,7 +277,7 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
             if (json->Has(Tmdb(TmdbTags::keywords))) {
                 auto object = json->GetPointer(Tmdb(TmdbTags::keywords));
                 auto tags = object->FindTagRecursive(Tmdb(TmdbTags::name));
-                for (auto item : tags) {
+                for (auto&& item : tags) {
 
                     root.AddChild(KodiWords(KodiTags::tag), item);
                 }
@@ -308,6 +290,7 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
         case languages:
             break;
         case dateadded:
+            root.AddChild(KodiWords(KodiTags::dateadded), _entry.birthTime().toString("yyyy-MM-dd"));
             break;
         default:
             break;
@@ -369,6 +352,104 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
     return JsonNode::Parse(_logger, movie_json);
 }
 
+void
+CommonMedia::extractImages(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb) {
+
+    if (json->Has(tmdb(TmdbTags::backdrop_path))){
+        auto background = json->GetString(tmdb(TmdbTags::backdrop_path));
+        QString link = tmdb_image_link + background;
+        XmlNode& fanart = root.AddChild(KodiWords(KodiTags::fanart));
+        fanart.AddChild(KodiWords(KodiTags::thumb), link);
+    }
+
+    auto poster_path = json->GetString(tmdb(TmdbTags::poster_path));
+    if (poster_path.isEmpty() == false){
+
+        QString link = "https://image.tmdb.org/t/p/original" + poster_path;
+        XmlNode& child = root.AddChild(KodiWords(KodiTags::thumb), link);
+        child.AddAttribute(KodiWords(KodiTags::aspect), KodiWords(KodiTags::poster));
+    }
+    else {
+        if (json->Has(tmdb(TmdbTags::images)) == false)
+            return;
+
+        auto object = json->GetPointer(tmdb(TmdbTags::images));
+        if (object == nullptr)
+            return;
+
+        if (object->Has(tmdb(TmdbTags::posters)) == false)
+            return;
+
+        auto array = object->GetArray(tmdb(TmdbTags::posters));
+        for (auto&& item : array) {
+            if (item->Has(tmdb(TmdbTags::iso_639_1)) == false)
+                continue;
+
+            auto lang = item->GetString(tmdb(TmdbTags::iso_639_1));
+            if (lang == "hu" || lang == "en") {
+                auto path = item->GetString(tmdb(TmdbTags::file_path));
+                QString link = tmdb_image_link + path;
+                XmlNode& child = root.AddChild(KodiWords(KodiTags::thumb), link);
+                child.AddAttribute(KodiWords(KodiTags::aspect), KodiWords(KodiTags::poster));
+                break;
+            }
+        }
+    }
+}
+
+void
+CommonMedia::extractDirectors(XmlNode& root, std::vector<JsonNode::Ptr> crew){
+
+    for(auto member : crew){
+
+        auto department = member->GetString("department");
+        auto job = member->GetString("job");
+        if (department.compare("Directing", Qt::CaseInsensitive) != 0 ||
+            job.compare("Director", Qt::CaseInsensitive) != 0)
+            continue;
+
+        auto id	= member->GetInt("id");
+        auto name = member->GetString("name");
+
+        XmlNode& director = root.AddChild(KodiWords(KodiTags::director), name);
+        director.AddAttribute(KodiWords(KodiTags::tmdbid), QString::number(id));
+    }
+}
+
+void
+CommonMedia::extractActors(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb) {
+
+    if (json->Has(tmdb(TmdbTags::credits)) == false)
+        return;
+
+    auto credits = json->GetPointer(tmdb(TmdbTags::credits));
+    if (credits->Has(tmdb(TmdbTags::crew))){
+        extractDirectors(root, credits->GetArray(tmdb(TmdbTags::crew)));
+    }
+
+    if (credits->Has(tmdb(TmdbTags::cast)) == false)
+        return;
+
+    auto actors = credits->GetArray(tmdb(TmdbTags::cast));
+    for (auto actor_object : actors) {
+        XmlNode& actor = root.AddChild(KodiWords(KodiTags::actor));
+
+        actor.AddChild(KodiWords(KodiTags::name), actor_object->GetString(tmdb(TmdbTags::name)));
+        actor.AddChild(KodiWords(KodiTags::role), actor_object->GetString(tmdb(TmdbTags::character)));
+
+        auto img = actor_object->GetString(tmdb(TmdbTags::character));
+        QString link = "https://image.tmdb.org/t/p/original";
+        link.append(img);
+        actor.AddChild(KodiWords(KodiTags::thumb), link);
+
+        auto id = QString::number(actor_object->GetInt(tmdb(TmdbTags::id)));
+        QString profile_link = "https://www.themoviedb.org/person/";
+        profile_link.append(id);
+        actor.AddChild(KodiWords(KodiTags::profile), profile_link);
+        actor.AddChild(KodiWords(KodiTags::tmdbid), id);
+    }
+}
+
 const char* 
 CommonMedia::Tmdb(TmdbTags key) {
     return TmdbWords(key, MediaType::Movie);
@@ -382,12 +463,13 @@ CommonMedia::GetDetails(QString id) {
 QString
 CommonMedia::GetFileName() {
 
-    for (auto const& dir_entry : _entry.dir().entryInfoList(QDir::NoDotAndDotDot | QDir::Files) )
+    QDir dir(_entry.absoluteFilePath());
+    for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files) )
     {
-        if (IsMediaFile(dir_entry.path()) == false)
+        if (IsMediaFile(dir_entry.absoluteFilePath()) == false)
             continue;
 
-        auto path = dir_entry.absolutePath() + dir_entry.completeBaseName() + ".nfo";
+        auto path = dir_entry.absolutePath() + QDir::separator() + dir_entry.completeBaseName() + ".nfo";
         return path;
     }
 
@@ -425,7 +507,9 @@ CommonMedia::CreateXml() {
                                 genre,
                                 credits,
                                 tag,
-                                actor });
+                                actor,
+                                dateadded,
+                                studio });
 
     xmls[GetFileName()] = root;
     return xmls;

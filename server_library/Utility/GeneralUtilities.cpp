@@ -106,6 +106,20 @@
 //    return false;
 //}
 
+bool
+GeneralUtilities::GetYear(const QString& title, int& year){
+    static QRegularExpression regex("[(][0-9]{4}[)]");
+
+    auto match = regex.match(title);
+    if (match.hasMatch() == false){
+        return false;
+    }
+
+    auto intermediate = match.captured();
+    year = ConvertToYear(intermediate);
+    return true;
+}
+
 int 
 GeneralUtilities::ConvertToYear(const QString& str) {
 

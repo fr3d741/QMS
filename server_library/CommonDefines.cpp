@@ -15,10 +15,11 @@ TmdbWords(TmdbTags key, int media_type) {
     typedef std::array<const char*, static_cast<size_t>(TmdbTags::Last)> wordsArray;
     
     constexpr wordsArray movies = { "original_title", "id", "imdb_id", "genres","images", "posters", "iso_639_1", "file_path", "translations", "data", "title", "release_date", "belongs_to_collection", "name",
-        "overview", "runtime", "keywords", "cast", "credits", "crew", "character", "profile_path", "","","", "results", "", "", "", "", "",""};
+        "overview", "runtime", "keywords", "cast", "credits", "crew", "character", "profile_path", "","","", "results", "", "", "", "", "","","poster_path","backdrop_path","production_companies",
+        "tagline"};
     constexpr wordsArray tvshows = { "original_name", "id", "imdb_id", "genres","images", "posters", "iso_639_1", "file_path", "translations", "data", "name", "first_air_date", "belongs_to_collection", "name",
         "overview", "runtime", "keywords", "cast", "credits", "crew", "character", "profile_path", "seasons", "season_number", "episode_count", "results", "number_of_seasons", "group_count", "groups", "episodes", 
-        "episode_number","order"};
+        "episode_number","order","poster_path","backdrop_path","production_companies","tagline"};
 
     constexpr std::array<wordsArray, 2> words = { movies, tvshows };
     return words[media_type][static_cast<int>(key)];
@@ -29,7 +30,7 @@ KodiWords(KodiTags key) {
 
     constexpr std::array<const char*, static_cast<size_t>(KodiTags::Last)> words = {
         "title", "uniqueid", "originaltitle","genre","year","original_filename", "fanart","thumb", "poster", "aspect", "set", "name", "overview",
-        "plot", "outline", "runtime", "tag", "actor", "role", "profile", "tmdbid","premiered", "season", "episode"
+        "plot", "outline", "runtime", "tag", "actor", "role", "profile", "tmdbid","premiered", "season", "episode","dateadded","type","studio","tagline","director"
     };
 
     return words[static_cast<int>(key)];

@@ -134,12 +134,13 @@ JsonNode::GetArray(const char* key) {
         return std::vector<JsonNode::Ptr>();
 
     std::vector<JsonNode::Ptr> vect;
-    for( auto a : v.toArray()){
+    auto json_array = v.toArray();
+    for(auto it = json_array.begin(); it != json_array.end(); ++it){
 
-        if (a.isObject() == false)
-            vect.push_back(JsonNode::Create(std::make_shared<JsonNodeImpl>(a.toObject())));
+        if (it->isObject() == false)
+            vect.push_back(JsonNode::Create(std::make_shared<JsonNodeImpl>(it->toObject())));
         else
-            vect.push_back(JsonNode::Create(std::make_shared<JsonNodeImpl>(a)));
+            vect.push_back(JsonNode::Create(std::make_shared<JsonNodeImpl>(*it)));
     }
 
     return vect;

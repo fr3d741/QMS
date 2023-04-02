@@ -26,4 +26,5 @@ public:
     virtual QString DumpConfiguration() = 0;
     virtual const std::map<QString, int>& GetPaths() = 0;
     virtual QString GetApiKey() = 0;
+    virtual int GetLogLevel() = 0;
 };

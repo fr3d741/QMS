@@ -1,4 +1,5 @@
 #include <Configuration/Configuration.h>
+#include <QFileInfo>
 
 const char* LOG_LEVEL = "LogLevel";
 const char* PATHS_TO_WATCH = "paths_to_watch";
@@ -17,7 +18,8 @@ GetPaths(JsonNode::Ptr node, std::map<QString, int>& paths) {
     for (auto js : json_array) {
         auto p = js->GetString(PATH);
         auto t = js->GetInt(TYPE);
-        paths[p] = t;
+        QFileInfo info(p);
+        paths[info.absoluteFilePath().toLower()] = t;
         is_changed = true;
     }
 
@@ -49,6 +51,11 @@ const std::map<QString, int>&
 Configuration::GetPaths() {
 
     return _paths;
+}
+
+int
+Configuration::GetLogLevel(){
+    return _log_level;
 }
 
 QString

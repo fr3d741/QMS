@@ -17,7 +17,7 @@ void
 StreamWriter::Write(const QString& path, const QString& content) {
 
     QFile file(path);
-    file.open(QIODeviceBase::ReadWrite);
+    file.open(QIODeviceBase::WriteOnly);
     QTextStream output(&file);
 
     output << content << Qt::endl;

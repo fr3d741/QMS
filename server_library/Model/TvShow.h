@@ -21,8 +21,10 @@ namespace Media {
         QString GetFileName() override;
         QString GetDetails(QString id) override;
         void CreateEpisodeNfos(std::map<QString, XmlNode>& dir_entry);
+        void extractImages(XmlNode& root, JsonNode::Ptr json, std::function<const char* (TmdbTags key)> tmdb) override;
     private:
         bool initCore(QString result_in_json);
+        XmlNode CreateEpisodeXml(JsonNode::Ptr json, const std::string& episode_nr);
     };
 
 }
