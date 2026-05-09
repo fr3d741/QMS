@@ -107,6 +107,20 @@
 //}
 
 bool
+GeneralUtilities::IsValid(const int value){
+    return value == std::numeric_limits<int>::max();
+}
+
+QString
+GeneralUtilities::GetTitle(const QString& str){
+
+    const static QRegularExpression regex("[(][0-9]{4}[)]");
+    auto match = regex.match(str);
+    QString title_wo_year = str.mid(0, match.capturedStart());
+    return title_wo_year.trimmed();
+}
+
+bool
 GeneralUtilities::GetYear(const QString& title, int& year){
     static QRegularExpression regex("[(][0-9]{4}[)]");
 

@@ -6,6 +6,7 @@
 class DLL GeneralUtilities
 {
 public:
+    GeneralUtilities() = delete;
 //    static void RightTrim(QString& str);
 //    static void RightTrim(std::string& str);
 //    static void LeftTrim(QString& str);
@@ -15,6 +16,8 @@ public:
 //    static string Convert(const std::string& str);
 //    static std::string Convert(const QString& str);
 //    static bool Contains(const string& in, const string& what);
+    static bool IsValid(const int value);
+    static QString GetTitle(const QString& str);
     static bool GetYear(const QString& title, int& year);
     static int ConvertToYear(const QString& str);
     static int ConvertToYear(const std::string& str);

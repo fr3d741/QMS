@@ -20,6 +20,7 @@ namespace Media {
         const QFileInfo _entry;
         ::MediaType _media_type;
         JsonNode::Ptr _details;
+        bool _valid = true;
     public:
         CommonMedia(Logging::ILogger::Ptr logger, QFileInfo entry, ::MediaType media_type = ::MediaType::Movie);
 

@@ -22,16 +22,16 @@
 #include <QTextStream>
 #include <QDebug>
 
-#ifdef _DEBUG
+
 
 #include <Utility/GeneralUtilities.h>
 
-class MockWriter :public IStreamWriter {
+class DummyWriter :public IStreamWriter {
 
     QFile out;
     QTextStream stream;
 public:
-    MockWriter() :
+    DummyWriter() :
       #ifdef _WIN32
           out("f:\\tmp\\log.txt"),
           stream(&out)
@@ -64,8 +64,6 @@ public:
     }
 };
 
-#endif // TEST
-
 int main(int argc, char** argv)
 {
     std::setlocale(LC_ALL, "");
@@ -82,10 +80,10 @@ int main(int argc, char** argv)
 
     auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
 #ifdef _DEBUG
-    auto writer = std::make_shared<MockWriter>();
-    auto server = MediaServer(logger, message_queue, writer, tcp_server);
+    auto writer = std::make_shared<DummyWriter>();
+   // auto server = MediaServer(logger, message_queue, writer, tcp_server);
 #else
-    auto server = MediaServer(logger, message_queue, std::make_shared<StreamWriter>(), tcp_server);
+
 #endif // TEST
 
     //File_System::FileSystemWatcher fs(logger, message_queue);
@@ -97,32 +95,46 @@ int main(int argc, char** argv)
     enum Param{
         UpdateAll,
         SinglePath,
-        UpdateType
+        UpdateType,
+        ScanAmbigious
 
     };
 
     Param options = UpdateAll;
-    int type = -1;
+    int type = -1; // 0 - movie, 1 - twshow
 
     if (1 < argc){
 
-        for(char* c = argv[1]; *c; ++c)
+        for(char* c = argv[1]; *c; ++c){
             if (*c < '0' || '9' < *c){
                 options = SinglePath;
                 break;
             }
+        }
 
         if (options == UpdateAll){
-            options = UpdateType;
+
             type = std::stoi(argv[1]);
+            switch(type){
+                case 0:
+                case 1:
+                    options = UpdateType;
+                    break;
+                case 2:
+                    options = ScanAmbigious;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
+    std::function<void(MediaServer&)> func;
+    IStreamWriter::Ptr stream_writer = std::make_shared<StreamWriter>();
 
-    try {
-
-        switch(options){
-            case UpdateType:
+    switch(options){
+        case UpdateType:
+            func = [&](MediaServer& s){
                 for (auto&& it : config->GetPaths()) {
 
                     if (it.second != type)
@@ -135,22 +147,43 @@ int main(int argc, char** argv)
                     qDebug() << it.first;
                 }
 
-                server.ProcessOnce();
-                break;
-            case SinglePath:
-                server.UpdateSinglePath(argv[1]);
-                break;
-            case UpdateAll:
-                {
-                    auto json = JsonNode::Create(logger);
-                    json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Path_Update));
-                    message_queue->Add(json->ToString());
-                }
+                s.ProcessOnce();
+            };
+            break;
+        case SinglePath:
+            func = [&](MediaServer& s){ s.UpdateSinglePath(argv[1]);};
+            break;
+        case UpdateAll:
+            func = [&](MediaServer& s)
+            {
+                auto json = JsonNode::Create(logger);
+                json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Path_Update));
+                message_queue->Add(json->ToString());
+                s.ProcessOnce();
+            };
+            break;
+        case ScanAmbigious:
+            func = [&](MediaServer& s){
+                for (auto&& it : config->GetPaths()) {
 
-                server.ProcessOnce();
-            default:
-                break;
-        }
+                auto json = JsonNode::Create(logger);
+                json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Rescan));
+                json->Add(KeyWords(Keys::Message), it.first);
+                message_queue->Add(json->ToString());
+                qDebug() << it.first;
+            }
+
+                s.ProcessOnce();
+            };
+            stream_writer = std::make_shared<DummyWriter>();
+            break;
+        default:
+            break;
+    }
+
+    auto server = MediaServer(logger, message_queue, stream_writer, tcp_server);
+    try{
+        func(server);
     }
     catch(...){
 

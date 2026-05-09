@@ -9,6 +9,7 @@
 #include <iostream>
 #include <thread>
 #include <QTextStream>
+#include <QFileInfo>
 
 using namespace Logging;
 using namespace std::chrono_literals;
@@ -36,6 +37,13 @@ Logger::Start() {
     auto file_name = QString("logs/%1.mslog").arg(file.c_str());
     _logger_file.setFileName(file_name);
     _logger_file.open(QIODevice::WriteOnly);
+    auto is_open = _logger_file.isOpen();
+    if (!is_open){
+        QFileInfo info(_logger_file);
+        auto path = info.absoluteFilePath();
+        throw QString("Cannot open %1").arg(path);
+    }
+
 
     auto t = std::thread(&Logger::startCore, this);
     t.detach();

@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
+#include <QChar>
 
 using namespace Media;
 using G = GeneralUtilities;
@@ -93,6 +94,49 @@ SelectOne(MediaType media_type, const QString& expected_title, const std::vector
         auto it = std::min_element(result_mapping.begin(), result_mapping.end(), [](std::pair<const Key, JsonNode::Ptr>& a, std::pair<const Key, JsonNode::Ptr>& b) { return a.first.hamming_distance < b.first.hamming_distance; });
         if (it != result_mapping.end()) {
             chosen = it->second;
+        }
+    }
+
+    return chosen;
+}
+
+static QString
+removeSpecialCharacters(QString title)
+{
+    QString new_title;
+    for(auto c : title){
+        if (c.isDigit() || c.isLetter())
+            new_title.append(c);
+    }
+
+    return new_title;
+}
+
+static JsonNode::Ptr
+SelectExactMatchOrNone(MediaType media_type, const QString& expected_title, const std::vector<JsonNode::Ptr>& values, std::function<QString(JsonNode::Ptr)> get_title_fn, bool& is_match_date, bool& is_match_title) {
+
+    const static QRegularExpression regex("[(][0-9]{4}[)]");
+    auto match = regex.match(expected_title);
+    QString title_wo_year = expected_title.mid(0, match.capturedStart());
+    int release_year = G::ConvertToYear(match.captured());
+    title_wo_year = removeSpecialCharacters(title_wo_year.trimmed());
+
+    JsonNode::Ptr chosen = nullptr;
+    is_match_date = false;
+    is_match_title = false;
+
+    for (size_t i = 0; i < values.size(); ++i) {
+
+        auto ptr = values[i];
+        const int local_year = GetReleaseYear(ptr, media_type);
+        auto title = removeSpecialCharacters(get_title_fn(ptr));
+
+        is_match_date = local_year == release_year;
+        is_match_title = title.compare(title_wo_year, Qt::CaseInsensitive) == 0;
+
+        if (is_match_date && is_match_title) {
+            chosen = ptr;
+            break;
         }
     }
 
@@ -305,7 +349,10 @@ CommonMedia::Init() {
     if (initCore(result_in_json) == false){
         _logger->DebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
         result_in_json = RestApi::SearchMovieWithoutYear(_title, _logger);
-        return initCore(result_in_json);
+        if (initCore(result_in_json) == false){
+            _valid = false;
+            return false;
+        }
     }
 
     return true;
@@ -333,10 +380,11 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
     if (values.size() != 1) {
 
         bool is_match_date, is_match_title;
-        js = SelectOne(_media_type, _title, values, get_title_fn, is_match_date, is_match_title);
+        js = SelectExactMatchOrNone(_media_type, _title, values, get_title_fn, is_match_date, is_match_title);
+        //js = SelectOne(_media_type, _title, values, get_title_fn, is_match_date, is_match_title);
 
         _logger->DebugMsg("Multiple results for " + _entry.absoluteFilePath());
-        {
+        if (js != nullptr) {
             XmlNode root("Multiple results");
             root.AddAttribute("title", _title);
             root.AddAttribute("path", _entry.absoluteFilePath());
@@ -345,6 +393,9 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
             _logger->LogMessage(root.Dump(), Logging::LogLevel::Detailed);
         }
     }
+
+    if (js == nullptr)
+        return nullptr;
 
     auto id = js->GetInt(Tmdb(TmdbTags::id));
     QString movie_json = GetDetails(QString::number(id));
@@ -479,13 +530,23 @@ CommonMedia::GetFileName() {
 std::map<QString, XmlNode>
 CommonMedia::CreateXml() {
 
-    std::map<QString, XmlNode> xmls;
+    if (_valid == false){
+
+        _details = JsonNode::Create(_logger);
+        auto title = G::GetTitle(_title);
+        _details->Add(Tmdb(TmdbTags::title), title);
+        _details->Add(Tmdb(TmdbTags::original_title), title);
+        _details->Add(Tmdb(TmdbTags::release_date), "..");
+        _details->Add(Tmdb(TmdbTags::id), 0);
+    }
+
     if (_details == nullptr)
     {
         _logger->DebugMsg("This should never happen! No Json to create XML from!");
-        return xmls;
+        return {};
     }
 
+    std::map<QString, XmlNode> xmls;
     XmlNode root = XmlNode(XmlTagFor(_media_type));
     XmlNode& id_node = root.AddChild(KodiWords(KodiTags::unique_id), QString::number(_details->GetInt(Tmdb(TmdbTags::id))));
     id_node.AddAttribute("type", "tmdb");
@@ -519,7 +580,7 @@ bool
 CommonMedia::IsMediaFile(const QString& path) {
 
     const std::set<QString> common_extensions = { ".mkv", ".avi", ".mpeg", ".mov", ".wmv", ".mp4", ".m4p", ".m4v" };
-    for(auto ex : common_extensions){
+    for(auto& ex : common_extensions){
         if (path.endsWith(ex))
             return true;
     }

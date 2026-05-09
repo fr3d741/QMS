@@ -170,6 +170,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
         }
     }
 
+#ifdef skip
     {
         // check for alternate episode groups
         auto episode_groups_json_string = RestApi::EpisodeGroups(show_id, logger);
@@ -199,6 +200,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
             }
         }
     }
+#endif
 
     return to_return;
 }
@@ -232,6 +234,7 @@ TvShow::Init() {
     if (initCore(result_in_json))
         return true;
 
+    _valid = false;
     return false;
 }
 
@@ -274,14 +277,28 @@ TvShow::CreateEpisodeNfos(std::map<QString, XmlNode>& result_map) {
     const std::filesystem::path extension(".nfo");
     for (auto&& item : season_episodes) {
 
-        if (proposed_episode_mapping.count(item.first) < 1)
+        QFileInfo info(item.second);
+        auto path = info.absolutePath() + "/" + info.completeBaseName().append(".nfo");
+
+        if (proposed_episode_mapping.count(item.first) < 1) {
+
+            auto episode_nr = item.first;
+            const std::regex number_filter("[0-9]{1,3}");
+            auto it = std::sregex_iterator(episode_nr.begin(), episode_nr.end(), number_filter);
+
+            const int season = stoi(it->str());
+            ++it;
+            const int episode = stoi(it->str());
+
+            XmlNode root("episodedetails");
+            root.AddChild(KodiWords(KodiTags::season), QString::number(season));
+            root.AddChild(KodiWords(KodiTags::episode), QString::number(episode));
+
+            result_map[path] = root;
             continue;
+        }
 
         auto epiosde_json = proposed_episode_mapping[item.first];
-
-        QFileInfo info(item.second);
-
-        auto path = info.absolutePath() + "/" + info.completeBaseName().append(".nfo");
         result_map[path] = CreateEpisodeXml(epiosde_json, item.first);
     }
 }

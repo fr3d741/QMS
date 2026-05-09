@@ -275,10 +275,8 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
             break;
     }
 
-    if (media->Init() == false){
+    if (media->Init() == false)
         _logger->Error("Failed to process " + path);
-        return;
-    }
 
     auto nodes = media->CreateXml();
     for (auto&& it : nodes) {
@@ -300,9 +298,9 @@ loadCache(QSet<QString>& cache){
     cache.clear();
 
     QTextStream stream(&file);
-    for(auto item : cache){
-        cache.insert(stream.readLine());
-    }
+//    for(auto&& item : cache){
+//        cache.insert(stream.readLine());
+//    }
     file.close();
     return true;
 }
