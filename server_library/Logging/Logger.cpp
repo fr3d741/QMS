@@ -6,7 +6,6 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
-#include <iostream>
 #include <thread>
 #include <QTextStream>
 #include <QFileInfo>
@@ -36,8 +35,7 @@ Logger::Start() {
     auto file = std::to_string(now.time_since_epoch().count());
     auto file_name = QString("logs/%1.mslog").arg(file.c_str());
     _logger_file.setFileName(file_name);
-    _logger_file.open(QIODevice::WriteOnly);
-    auto is_open = _logger_file.isOpen();
+    auto is_open = _logger_file.open(QIODevice::WriteOnly);
     if (!is_open){
         QFileInfo info(_logger_file);
         auto path = info.absoluteFilePath();

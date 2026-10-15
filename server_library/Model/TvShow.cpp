@@ -4,7 +4,6 @@
 #include <Utility/GeneralUtilities.h>
 
 #include <regex>
-#include <algorithm>
 #include <string>
 #include <QFileInfo>
 #include <QDir>
@@ -128,7 +127,7 @@ is_includes(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2) {/
     return true;
 }
 
-static int 
+static unsigned int
 count_intersection(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2)
 {
     int counter = 0;
@@ -163,7 +162,7 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
         if (is_includes(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end()))
             return episodes_map;
 
-        int count = count_intersection(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end());
+        auto count = count_intersection(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end());
         if (to_return.size() < count) {
             to_return = std::move(episodes_map);
 
@@ -311,7 +310,7 @@ TvShow::extractImages(XmlNode& root, JsonNode::Ptr json, std::function<const cha
         return;
 
     auto seasons = json->GetArray(tmdb(TmdbTags::seasons));
-    for(auto i = 0; i < seasons.size(); ++i){
+    for(size_t i = 0; i < seasons.size(); ++i){
         auto season = seasons[i];
         if (season->Has(tmdb(TmdbTags::poster_path)) == false)
             continue;

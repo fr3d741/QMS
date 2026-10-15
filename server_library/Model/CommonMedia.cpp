@@ -41,65 +41,6 @@ GetReleaseYear(JsonNode::Ptr ptr, MediaType media_type) {
     return G::ConvertToYear(date);
 }
 
-static JsonNode::Ptr
-SelectOne(MediaType media_type, const QString& expected_title, const std::vector<JsonNode::Ptr>& values, std::function<QString(JsonNode::Ptr)> get_title_fn, bool& is_match_date, bool& is_match_title) {
-
-    std::map<Key, JsonNode::Ptr> result_mapping;
-    const static QRegularExpression regex("[(][0-9]{4}[)]");
-    auto match = regex.match(expected_title);
-    QString title_wo_year = expected_title.mid(0, match.capturedStart());
-    int release_year = G::ConvertToYear(match.captured());
-    title_wo_year = title_wo_year.trimmed();
-    
-    JsonNode::Ptr chosen = values[0];
-    is_match_date = false;
-    is_match_title = false;
-
-    for (size_t i = 0; i < values.size(); ++i) {
-
-        auto ptr = values[i];
-        const int local_year = GetReleaseYear(ptr, media_type);
-        auto title = get_title_fn(ptr);
-
-        is_match_date = local_year == release_year;
-        is_match_title = title.compare(title_wo_year, Qt::CaseInsensitive) == 0;
-        if (!is_match_title) {
-            if (G::HasNumber(title)) {
-
-                auto title_with_roman_number = G::ConvertLatinToRomanNumbers(title);
-                is_match_title = title_with_roman_number.compare(title_wo_year, Qt::CaseInsensitive) == 0;
-                if (is_match_title)
-                    title = title_with_roman_number;
-            }
-            else if (G::HasNumber(title_wo_year)) {
-
-                auto title_with_roman_number = G::ConvertLatinToRomanNumbers(title_wo_year);
-                is_match_title = title.compare(title_with_roman_number,Qt::CaseInsensitive) == 0;
-                if (is_match_title)
-                    title_wo_year = title_with_roman_number;
-            }
-        }
-
-        if (is_match_date && is_match_title) {
-            chosen = ptr;
-            break;
-        }
-        else {
-            result_mapping.insert({ Key{ title, local_year }, ptr });
-        }
-    }
-
-    if (!is_match_date || !is_match_title) {
-        std::for_each(result_mapping.begin(), result_mapping.end(), [&](std::pair<const Key, JsonNode::Ptr> item) { item.first.hamming_distance = G::HammingDistance(item.first.title, title_wo_year); });
-        auto it = std::min_element(result_mapping.begin(), result_mapping.end(), [](std::pair<const Key, JsonNode::Ptr>& a, std::pair<const Key, JsonNode::Ptr>& b) { return a.first.hamming_distance < b.first.hamming_distance; });
-        if (it != result_mapping.end()) {
-            chosen = it->second;
-        }
-    }
-
-    return chosen;
-}
-
 static QString
 removeSpecialCharacters(QString title)
 {

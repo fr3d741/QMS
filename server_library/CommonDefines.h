@@ -1,11 +1,6 @@
 #pragma once
 
 #include "Macros.h"
-#include <array>
-#include <regex>
-#include <string>
-#include <sstream>
-#include <fstream>
 
 #include <QString>
 
@@ -29,6 +24,7 @@ enum class Actions {
 };
 
 enum MediaType {
+    Undefined = -1,
     Movie = 0,
     TvShow = 1
 };

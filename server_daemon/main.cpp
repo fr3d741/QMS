@@ -12,17 +12,16 @@
 #include <CommonDefines.h>
 
 #include <string>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
+// #include <iostream>
+// #include <fstream>
+// #include <sstream>
+// #include <filesystem>
 #include <memory>
+#include <locale.h>
 
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
-
-
 
 #include <Utility/GeneralUtilities.h>
 
@@ -40,7 +39,7 @@ public:
           stream(&out)
       #endif
     {
-        out.open(QIODevice::WriteOnly);
+        if (out.open(QIODevice::WriteOnly)) return;
     }
 
     void Write(const std::string& , const std::string& ) {

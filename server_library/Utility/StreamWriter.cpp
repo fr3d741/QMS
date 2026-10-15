@@ -1,5 +1,6 @@
 #include <Utility/StreamWriter.h>
 
+#include <fstream>
 #include <filesystem>
 #include <QTextStream>
 #include <QFile>
@@ -17,7 +18,8 @@ void
 StreamWriter::Write(const QString& path, const QString& content) {
 
     QFile file(path);
-    file.open(QIODeviceBase::WriteOnly);
+    if (file.open(QIODeviceBase::WriteOnly) == false)
+        return;
     QTextStream output(&file);
 
     output << content << Qt::endl;
@@ -29,7 +31,8 @@ StreamWriter::Write(const std::string& path, const QString& content) {
 
     auto p = std::filesystem::path(path);
     QFile file(p);
-    file.open(QIODeviceBase::ReadWrite);
+    if (file.open(QIODeviceBase::ReadWrite) == false)
+        return;
     QTextStream output(&file);
 
     output << content << Qt::endl;

@@ -10,10 +10,6 @@
 
 #include <Configuration/IConfiguration.h>
 
-#include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
 #include <thread>
 
 #include <QMultiMap>
@@ -30,7 +26,7 @@ static QMultiMap<int, QString>
 MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
 
     QMultiMap<int, QString> messages;
-    for (auto msg : local_storage) {
+    for (auto&& msg : local_storage) {
 
         auto root = JsonNode::Parse(logger, msg);
         if (root->Has(KeyWords(Keys::NodeType)) == false)
@@ -121,7 +117,7 @@ MediaServer::Start() {
                 local_storage.clear();
 
                 auto&& paths = IConfiguration::Instance().GetPaths();
-                for (auto item : messages)
+                for (auto item : std::as_const(messages))
                     processMessage(item, paths);
 
                 idle_timer.ReStart();
@@ -161,7 +157,7 @@ MediaServer::ProcessOnce(){
     local_storage.clear();
 
     auto&& paths = IConfiguration::Instance().GetPaths();
-    for (auto item : messages)
+    for (auto item : std::as_const(messages))
         processMessage(item, paths);
     if (_dirty_cache)
         saveCache();
@@ -329,7 +325,7 @@ MediaServer::saveCache(){
         return false;
 
     QTextStream stream(&file);
-    for(auto&& item :  qAsConst(_cache)){
+    for(auto&& item : std::as_const(_cache)){
         stream << item << Qt::endl;
     }
     file.close();
