@@ -12,8 +12,7 @@ INCLUDEPATH += $$PWD/../server_library
 SOURCES += \
         main.cpp
 
-win32: LIBS += ../bin/server_library.lib
-unix: LIBS += -L../bin/ -lserver_library
+LIBS += -L../bin/ -lserver_library
 DESTDIR = ../bin
 
 # Default rules for deployment.
