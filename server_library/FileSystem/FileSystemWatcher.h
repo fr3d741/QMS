@@ -4,7 +4,6 @@
 #include <Utility/IMessageQueue.h>
 #include <Logging/ILogger.h>
 
-#include <string>
 #include <vector>
 #include <QString>
 

@@ -2,8 +2,6 @@
 
 #include "Macros.h"
 #include <memory>
-#include <string>
-#include <list>
 #include <map>
 
 #include <QString>

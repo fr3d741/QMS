@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Macros.h"
-#include <string>
 #include <memory>
 #include <queue>
 

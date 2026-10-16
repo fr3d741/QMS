@@ -5,7 +5,6 @@
 #include <Utility/JsonNode.h>
 #include <Logging/ILogger.h>
 
-#include <filesystem>
 #include <functional>
 #include <QFileInfo>
 

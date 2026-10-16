@@ -7,15 +7,7 @@ class DLL GeneralUtilities
 {
 public:
     GeneralUtilities() = delete;
-//    static void RightTrim(QString& str);
-//    static void RightTrim(std::string& str);
-//    static void LeftTrim(QString& str);
-//    static void LeftTrim(std::string& str);
-//    static bool AreEqualCaseInsensitive(std::string str1, std::string str2);
-//    static bool AreEqualCaseInsensitive(QString str1, QString str2);
-//    static string Convert(const std::string& str);
-//    static std::string Convert(const QString& str);
-//    static bool Contains(const string& in, const string& what);
+
     static bool IsValid(const int value);
     static QString GetTitle(const QString& str);
     static bool GetYear(const QString& title, int& year);

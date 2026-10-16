@@ -5,8 +5,6 @@
 #include <Logging/ILogger.h>
 
 #include <vector>
-#include <string>
-#include <thread>
 
 class MessageQueue;
 

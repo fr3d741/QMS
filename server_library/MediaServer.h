@@ -6,9 +6,6 @@
 #include <Utility/IMessageQueue.h>
 #include <Utility/StreamWriter.h>
 
-#include <memory>
-#include <string>
-#include <set>
 #include <map>
 
 #include <QSet>

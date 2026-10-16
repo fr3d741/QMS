@@ -4,10 +4,8 @@
 #include <Logging/ILogger.h>
 
 #include <list>
-#include <string>
 #include <memory>
 #include <mutex>
-#include <fstream>
 
 #include <QString>
 #include <QFile>

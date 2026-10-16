@@ -1,7 +1,6 @@
 #pragma once
 
 #include <shared_mutex>
-#include <string>
 #include <queue>
 
 #include <Utility/IMessageQueue.h>
