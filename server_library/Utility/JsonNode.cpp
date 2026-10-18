@@ -1,11 +1,7 @@
 #include <Utility/JsonNode.h>
 #include <Utility/GeneralUtilities.h>
 
-#include <list>
-#include <map>
-#include <variant>
 #include <limits>
-#include <exception>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -50,9 +46,9 @@ public:
 
 };
 
-JsonNode::JsonNode(Logging::ILogger::Ptr logger)
+JsonNode::JsonNode()
     : _impl(std::make_shared<JsonNodeImpl>())
-    , _logger(logger) {
+{
 
 }
 
@@ -79,7 +75,7 @@ void
 JsonNode::Add(const QString& key, const std::vector<Ptr>& array){
 
     QJsonArray json_array;
-    for(auto ptr : array){
+    for(auto& ptr : array){
         QJsonValue val(ptr->_impl->json_object);
         json_array.append(val);
     }
@@ -185,9 +181,9 @@ JsonNode::FindTagRecursive(const char* key) {
     auto result = FindKeyRecursive(_impl->json_object, key);
     std::vector<QString> ret;
     ret.reserve(result.size());
-    for(auto it : result)
+    for(auto it : std::as_const(result))
         ret.push_back(it.toString());
-    //ret.insert(ret.end(), result.begin(), result.end());
+
     return ret;
 }
 
@@ -201,13 +197,13 @@ JsonNode::Parse(Logging::ILogger::Ptr logger, const QString& json) {
 }
 
 JsonNode::Ptr
-JsonNode::Create(Logging::ILogger::Ptr logger) {
-    return std::shared_ptr<JsonNode>(new JsonNode(logger));
+JsonNode::Create(Logging::ILogger::Ptr /*logger*/) {
+    return std::shared_ptr<JsonNode>(new JsonNode());
 }
 
 JsonNode::Ptr
 JsonNode::Create(std::shared_ptr<JsonNodeImpl> ptr) {
-    auto node = std::shared_ptr<JsonNode>(new JsonNode(nullptr));
+    auto node = std::shared_ptr<JsonNode>(new JsonNode());
     node->_impl = ptr;
     return node;
 }

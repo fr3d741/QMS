@@ -1,11 +1,14 @@
 #include <FileSystem/FileSystemWatcher.h>
-#include <thread>
 
-#ifdef _WIN64
-    #include "WinFSWatcher.h"
-#endif
+//#include <QFileSystemWatcher>
 
 using namespace File_System;
+
+// static QFileSystemWatcher&
+// getWatcher(){
+//     static QFileSystemWatcher fs_watch;
+//     return fs_watch;
+// }
 
 FileSystemWatcher::FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue::Ptr message_queue)
     : _logger(logger)
@@ -14,50 +17,21 @@ FileSystemWatcher::FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue
 }
 
 void 
-FileSystemWatcher::AddPath(const QString& path) {
+FileSystemWatcher::AddPath(const QString& /*path*/) {
 
-    _paths.push_back(path);
-    if (_started == false)
-        return;
 
-#ifdef _WIN64
-    WinFSWatcher::WatchDirectories(_logger, _paths, _queue);
-#elif __linux__
-    // TODO:
-#endif
 }
 
 void 
-FileSystemWatcher::AddPath(const std::vector<QString>& paths) {
+FileSystemWatcher::AddPath(const std::vector<QString>& /*paths*/) {
 
-    _paths.insert(_paths.end(), paths.begin(), paths.end());
-    if (_started == false)
-        return;
-
-#ifdef _WIN64
-    WinFSWatcher::WatchDirectories(_logger, _paths, _queue);
-#elif __linux__
-    // TODO:
-#endif
 }
 
 void 
 FileSystemWatcher::Start() {
 
-    _started = true;
-#ifdef _WIN64
-    WinFSWatcher::WatchDirectories(_logger, _paths, _queue);
-#elif __linux__
-    // TODO:
-#endif
 }
 
 void 
 FileSystemWatcher::Stop() {
-    _started = false;
-#ifdef _WIN64
-    WinFSWatcher::WatchDirectories(_logger, {}, _queue);
-#elif __linux__
-    // TODO:
-#endif
 }

@@ -4,9 +4,17 @@ QT += network
 TEMPLATE = lib
 DEFINES += MEDIASERVER_LIB
 
-CONFIG += c++17 conan_basic_setup
+CONFIG += c++17
 
-include(../conanbuildinfo.pri)
+win32 {
+    CONFIG += conan_basic_setup
+    include(../conanbuildinfo.pri)
+}
+
+unix {
+    CONFIG += link_pkgconfig
+    PKGCONFIG += libcurl
+}
 
 DESTDIR = ../bin
 
@@ -22,7 +30,6 @@ SOURCES += \
     Factories/MessageQueueFactory.cpp \
     Factories/TcpServerFactory.cpp \
     FileSystem/FileSystemWatcher.cpp \
-    FileSystem/WinFSWatcher.cpp \
     Logging/Logger.cpp \
     MediaServer.cpp \
     Model/CommonMedia.cpp \
@@ -32,6 +39,7 @@ SOURCES += \
     Utility/GeneralUtilities.cpp \
     Utility/JsonNode.cpp \
     Utility/MessageQueue.cpp \
+    Utility/Messagebuilder.cpp \
     Utility/ScopedFunction.cpp \
     Utility/StreamWriter.cpp \
     Utility/XmlNode.cpp \
@@ -45,7 +53,6 @@ HEADERS += \
     Factories/MessageQueueFactory.h \
     Factories/TcpServerFactory.h \
     FileSystem/FileSystemWatcher.h \
-    FileSystem/WinFSWatcher.h \
     Logging/ILogger.h \
     Logging/Logger.h \
     Macros.h \
@@ -59,6 +66,7 @@ HEADERS += \
     Utility/IMessageQueue.h \
     Utility/JsonNode.h \
     Utility/MessageQueue.h \
+    Utility/Messagebuilder.h \
     Utility/ScopedFunction.h \
     Utility/StreamWriter.h \
     Utility/XmlNode.h \

@@ -3,19 +3,21 @@
 #include <Factories/ConfigurationFactory.h>
 #include <Factories/MessageQueueFactory.h>
 #include <Factories/TcpServerFactory.h>
+
 #include <Logging/Logger.h>
+
 #include <Networking/RestApi.h>
-#include <Utility/StreamWriter.h>
+
 #include <FileSystem/FileSystemWatcher.h>
+
+#include <Utility/StreamWriter.h>
 #include <Utility/JsonNode.h>
+#include <Utility/Messagebuilder.h>
+
 #include <MediaServer.h>
 #include <CommonDefines.h>
 
 #include <string>
-// #include <iostream>
-// #include <fstream>
-// #include <sstream>
-// #include <filesystem>
 #include <memory>
 #include <locale.h>
 
@@ -78,24 +80,18 @@ int main(int argc, char** argv)
     auto message_queue = MessageQueueFactory::CreateMessageQueue();
 
     auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
-#ifdef _DEBUG
-    auto writer = std::make_shared<DummyWriter>();
-   // auto server = MediaServer(logger, message_queue, writer, tcp_server);
-#else
 
-#endif // TEST
 
-    //File_System::FileSystemWatcher fs(logger, message_queue);
+    File_System::FileSystemWatcher fs(logger, message_queue);
 
-    //fs.Start();
-
-    //tcp_server->ListenOn(33015);
+    fs.Start();
 
     enum Param{
         UpdateAll,
         SinglePath,
         UpdateType,
-        ScanAmbigious
+        ScanAmbigious,
+        MonitorBackground,
 
     };
 
@@ -116,6 +112,8 @@ int main(int argc, char** argv)
             type = std::stoi(argv[1]);
             switch(type){
                 case 0:
+                    options = MonitorBackground;
+                    break;
                 case 1:
                     options = UpdateType;
                     break;
@@ -128,10 +126,11 @@ int main(int argc, char** argv)
         }
     }
 
-    std::function<void(MediaServer&)> func;
+    std::function<void(MediaServer&)> func = [&](MediaServer& s){ };
     IStreamWriter::Ptr stream_writer = std::make_shared<StreamWriter>();
 
     switch(options){
+
         case UpdateType:
             func = [&](MediaServer& s){
                 for (auto&& it : config->GetPaths()) {
@@ -139,10 +138,7 @@ int main(int argc, char** argv)
                     if (it.second != type)
                         continue;
 
-                    auto json = JsonNode::Create(logger);
-                    json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Rescan));
-                    json->Add(KeyWords(Keys::Message), it.first);
-                    message_queue->Add(json->ToString());
+                    message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
                     qDebug() << it.first;
                 }
 
@@ -155,9 +151,7 @@ int main(int argc, char** argv)
         case UpdateAll:
             func = [&](MediaServer& s)
             {
-                auto json = JsonNode::Create(logger);
-                json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Path_Update));
-                message_queue->Add(json->ToString());
+                message_queue->Add(MessageBuilder::Create(Actions::Path_Update).Build());
                 s.ProcessOnce();
             };
             break;
@@ -165,16 +159,16 @@ int main(int argc, char** argv)
             func = [&](MediaServer& s){
                 for (auto&& it : config->GetPaths()) {
 
-                auto json = JsonNode::Create(logger);
-                json->Add(KeyWords(Keys::NodeType), static_cast<int>(Actions::Rescan));
-                json->Add(KeyWords(Keys::Message), it.first);
-                message_queue->Add(json->ToString());
+                message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
                 qDebug() << it.first;
             }
 
                 s.ProcessOnce();
             };
             stream_writer = std::make_shared<DummyWriter>();
+            break;
+        case MonitorBackground:
+            func = [&](MediaServer& s) { s.Start(); };
             break;
         default:
             break;
@@ -188,12 +182,7 @@ int main(int argc, char** argv)
 
     }
 
-#ifdef _DEBUG
-    writer->close();
-#endif
 
-    //fs.Stop();
-    //tcp_server->Stop();
     logger->Stop();
 
     return 1;

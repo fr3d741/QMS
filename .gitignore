@@ -36,3 +36,10 @@ build-*/
 /.*
 /bin/
 /build/
+/conan_imports_manifest.txt
+/conan.lock
+/conanbuildinfo.pri
+/conanbuildinfo.txt
+/conaninfo.txt
+/graph_info.json
+/qms.pro.user

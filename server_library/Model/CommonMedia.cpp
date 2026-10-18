@@ -465,7 +465,7 @@ CommonMedia::GetFileName() {
         return path;
     }
 
-    return _entry.absolutePath() + "\\movie.nfo";
+    return _entry.absolutePath() + "/movie.nfo";
 }
 
 std::map<QString, XmlNode>

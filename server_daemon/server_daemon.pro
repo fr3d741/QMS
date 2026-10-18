@@ -12,8 +12,11 @@ INCLUDEPATH += $$PWD/../server_library
 SOURCES += \
         main.cpp
 
-LIBS += -L../bin/ -lserver_library
+LIBS += -L$$OUT_PWD/../bin -lserver_library
 DESTDIR = ../bin
+
+# find libserver_library.so next to the executable
+unix: QMAKE_LFLAGS += "-Wl,-rpath,\'\$$ORIGIN\'"
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

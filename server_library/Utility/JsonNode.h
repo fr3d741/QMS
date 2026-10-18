@@ -12,8 +12,7 @@ class JsonNodeImpl;
 class DLL JsonNode {
 
     std::shared_ptr<JsonNodeImpl> _impl;
-    Logging::ILogger::Ptr _logger;
-    JsonNode(Logging::ILogger::Ptr logger);
+    JsonNode();
 
 public:
     typedef std::shared_ptr<JsonNode> Ptr;
@@ -22,15 +21,6 @@ public:
     void Add(const QString& key, QString value);
     void Add(const QString& key, QStringList array);
     void Add(const QString& key, const std::vector<Ptr>& array);
-//    void Add(const std::string& key, double value);
-//    void Add(const std::string& key, bool value);
-//    void Add(const std::string& key, Ptr value);
-
-//    bool Get(const std::string& key, int& value);
-//    bool Get(const std::string& key, std::string& value);
-//    bool Get(const std::string& key, double& value);
-//    bool Get(const std::string& key, bool& value);
-//    bool Get(const std::string& key, Ptr& value);
     bool Get(const char* key, std::vector<Ptr>& value);
 
     int GetInt(const char* key);
@@ -40,12 +30,6 @@ public:
 
     int GetInt();
     QString GetString();
-//    double GetDouble();
-//    bool GetBool();
-//    Ptr GetPointer();
-//    std::vector<Ptr> GetArray();
-
-    //QString GetAsString(const char* key);
 
     bool Has(const char* key);
 
@@ -56,6 +40,6 @@ public:
 
     // static classes
     static Ptr Parse(Logging::ILogger::Ptr logger, const QString& json);
-    static Ptr Create(Logging::ILogger::Ptr logger);
+    static Ptr Create(Logging::ILogger::Ptr logger = nullptr);
     static Ptr Create(std::shared_ptr<JsonNodeImpl> ptr);
 };

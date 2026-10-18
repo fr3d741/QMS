@@ -253,7 +253,7 @@ TvShow::Tmdb(TmdbTags key) {
 QString
 TvShow::GetFileName() {
 
-    return _entry.absoluteFilePath().append("\\tvshow.nfo");
+    return _entry.absoluteFilePath().append("/tvshow.nfo");
 }
 
 QString

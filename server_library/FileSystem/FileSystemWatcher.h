@@ -21,8 +21,7 @@ namespace File_System {
 
         Logging::ILogger::Ptr _logger;
         IMessageQueue::Ptr _queue;
-        std::vector<QString> _paths;
-        bool _started = false;
+
     public:
         FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue);
         void AddPath(const QString& path) override;
