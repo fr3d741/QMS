@@ -16,19 +16,22 @@ FileSystemWatcher::FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue
 
 }
 
-void 
-FileSystemWatcher::AddPath(const QString& /*path*/) {
+void
+FileSystemWatcher::AddPath(const QString& path) {
 
-
+    _paths.append(path);
 }
 
 void 
-FileSystemWatcher::AddPath(const std::vector<QString>& /*paths*/) {
+FileSystemWatcher::AddPath(const std::vector<QString>& paths) {
 
+    for(auto& p : paths)
+        _paths.append(p);
 }
 
 void 
 FileSystemWatcher::Start() {
+
 
 }
 

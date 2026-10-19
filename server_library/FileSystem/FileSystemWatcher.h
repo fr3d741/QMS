@@ -4,8 +4,10 @@
 #include <Utility/IMessageQueue.h>
 #include <Logging/ILogger.h>
 
-#include <vector>
 #include <QString>
+#include <QStringList>
+
+#include <vector>
 
 namespace File_System {
 
@@ -21,6 +23,7 @@ namespace File_System {
 
         Logging::ILogger::Ptr _logger;
         IMessageQueue::Ptr _queue;
+        QStringList _paths;
 
     public:
         FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue);
