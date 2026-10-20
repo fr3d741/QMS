@@ -20,7 +20,12 @@ GetPaths(JsonNode::Ptr node, std::map<QString, int>& paths) {
         auto p = js->GetString(PATH);
         auto t = js->GetInt(TYPE);
         QFileInfo info(p);
+#ifdef _WIN32
+        // Windows paths are case-insensitive; normalize so lookups match
         paths[info.absoluteFilePath().toLower()] = t;
+#else
+        paths[info.absoluteFilePath()] = t;
+#endif
         is_changed = true;
     }
 

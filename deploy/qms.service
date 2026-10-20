@@ -10,7 +10,7 @@ Wants=network-online.target
 [Service]
 # config.json is loaded relative to the working directory
 WorkingDirectory=/opt/qms
-ExecStart=/opt/qms/server_daemon
+ExecStart=/opt/qms/server_daemon 0
 Restart=on-failure
 RestartSec=5
 

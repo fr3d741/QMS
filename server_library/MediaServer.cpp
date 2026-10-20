@@ -64,7 +64,9 @@ MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
 static int
 GetMediaType(QString entry, const std::map<QString, int>& path_types){
 
+#ifdef _WIN32
     entry = entry.toLower();
+#endif
     if (path_types.count(entry))
         return path_types.at(entry);
 
