@@ -6,6 +6,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <thread>
 
 #include <QString>
 #include <QFile>
@@ -16,9 +17,10 @@ namespace Logging {
     {
         LogLevel _current_logLevel = LogLevel::Error;
         QFile _logger_file;
-        std::atomic<bool> _stop_not_requested = true;
+        std::atomic<bool> _continue = true;
         std::mutex _mutex;
         std::shared_ptr<std::list<QString>> _messages;
+        std::thread _worker;
     public:
         Logger();
 

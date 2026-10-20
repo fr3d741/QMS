@@ -182,7 +182,7 @@ JsonNode::FindTagRecursive(const char* key) {
     auto result = FindKeyRecursive(_impl->json_object, key);
     std::vector<QString> ret;
     ret.reserve(result.size());
-    for(auto it : std::as_const(result))
+    for(auto& it : std::as_const(result))
         ret.push_back(it.toString());
 
     return ret;

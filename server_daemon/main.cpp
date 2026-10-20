@@ -65,16 +65,10 @@ public:
     }
 };
 
-int main(int argc, char** argv)
-{
-    std::setlocale(LC_ALL, "");
-    std::locale::global(std::locale(""));
+void mainCore(int argc, char** argv, Logging::ILogger::Ptr logger){
 
-    auto logger = std::make_shared<Logging::Logger>();
-    logger->Start();
     IConfiguration::Ptr config = ConfigurationFactory::LoadConfiguration(logger, "config.json");
     IConfiguration::Instance(config);
-
     logger->SetLogLevel(static_cast<Logging::LogLevel>(config->GetLogLevel()));
     RestApi::ApiKey() = config->GetApiKey();
     auto message_queue = MessageQueueFactory::CreateMessageQueue();
@@ -109,17 +103,17 @@ int main(int argc, char** argv)
 
             type = std::stoi(argv[1]);
             switch(type){
-                case 0:
-                    options = MonitorBackground;
-                    break;
-                case 1:
-                    options = UpdateType;
-                    break;
-                case 2:
-                    options = ScanAmbigious;
-                    break;
-                default:
-                    break;
+            case 0:
+                options = MonitorBackground;
+                break;
+            case 1:
+                options = UpdateType;
+                break;
+            case 2:
+                options = ScanAmbigious;
+                break;
+            default:
+                break;
             }
         }
     }
@@ -129,51 +123,51 @@ int main(int argc, char** argv)
 
     switch(options){
 
-        case UpdateType:
-            func = [&](MediaServer& s){
-                for (auto&& it : config->GetPaths()) {
+    case UpdateType:
+        func = [&](MediaServer& s){
+            for (auto&& it : config->GetPaths()) {
 
-                    if (it.second != type)
-                        continue;
-
-                    message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
-                    qDebug() << it.first;
-                }
-
-                s.ProcessOnce();
-            };
-            break;
-        case SinglePath:
-            func = [&](MediaServer& s){ s.UpdateSinglePath(argv[1]);};
-            break;
-        case UpdateAll:
-            func = [&](MediaServer& s)
-            {
-                message_queue->Add(MessageBuilder::Create(Actions::Path_Update).Build());
-                s.ProcessOnce();
-            };
-            break;
-        case ScanAmbigious:
-            func = [&](MediaServer& s){
-                for (auto&& it : config->GetPaths()) {
+                if (it.second != type)
+                    continue;
 
                 message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
                 qDebug() << it.first;
             }
 
-                s.ProcessOnce();
-            };
-            stream_writer = std::make_shared<DummyWriter>();
-            break;
-        case MonitorBackground:
-            {
-                fs.AddPath(config->GetWatchedPaths());
-                fs.Start();
-                func = [&](MediaServer& s) { s.Start(); };
+            s.ProcessOnce();
+        };
+        break;
+    case SinglePath:
+        func = [&](MediaServer& s){ s.UpdateSinglePath(argv[1]);};
+        break;
+    case UpdateAll:
+        func = [&](MediaServer& s)
+        {
+            message_queue->Add(MessageBuilder::Create(Actions::Path_Update).Build());
+            s.ProcessOnce();
+        };
+        break;
+    case ScanAmbigious:
+        func = [&](MediaServer& s){
+            for (auto&& it : config->GetPaths()) {
+
+                message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
+                qDebug() << it.first;
             }
-            break;
-        default:
-            break;
+
+            s.ProcessOnce();
+        };
+        stream_writer = std::make_shared<DummyWriter>();
+        break;
+    case MonitorBackground:
+    {
+        fs.AddPath(config->GetWatchedPaths());
+        fs.Start();
+        func = [&](MediaServer& s) { s.Start(); };
+    }
+    break;
+    default:
+        break;
     }
 
     auto server = MediaServer(logger, message_queue, stream_writer, tcp_server);
@@ -183,7 +177,22 @@ int main(int argc, char** argv)
     catch(...){
 
     }
+}
 
+int main(int argc, char** argv)
+{
+    std::setlocale(LC_ALL, "");
+    std::locale::global(std::locale(""));
+
+    auto logger = std::make_shared<Logging::Logger>();
+    logger->Start();
+
+    try{
+        mainCore(argc, argv, logger);
+    }
+    catch(std::exception& e){
+        logger->LogMessage(QString(e.what()), Logging::LogLevel::Error);
+    }
 
     logger->Stop();
 

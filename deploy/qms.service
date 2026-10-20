@@ -12,6 +12,7 @@ Wants=network-online.target
 WorkingDirectory=/opt/qms
 ExecStart=/opt/qms/server_daemon
 Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

@@ -46,14 +46,20 @@ Logger::Start() {
     }
 
 
-    auto t = std::thread(&Logger::startCore, this);
-    t.detach();
+    _worker = std::thread(&Logger::startCore, this);
 }
 
 void 
 Logger::Stop() {
 
-    _stop_not_requested.store(false);
+    _continue.store(false);
+    _worker.join();
+
+    QTextStream stream(&_logger_file);
+    for (auto&& msg : *_messages) {
+        stream << msg << Qt::endl;
+    }
+    stream.flush();
 }
 
 void
@@ -99,7 +105,7 @@ Logger::DecreaseLogLevel(){
 void
 Logger::startCore(){
 
-    while (_stop_not_requested.load())
+    while (_continue.load())
     {
         std::shared_ptr<std::list<QString>> replica_messages = std::make_shared<std::list<QString>>();
         {
@@ -115,6 +121,7 @@ Logger::startCore(){
             stream.flush();
         }
 
-        std::this_thread::sleep_for(1min);
+        if (_continue.load())
+            std::this_thread::sleep_for(1min);
     }
 }
