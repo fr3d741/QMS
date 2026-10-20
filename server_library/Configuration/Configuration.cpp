@@ -1,11 +1,14 @@
 #include <Configuration/Configuration.h>
 #include <QFileInfo>
 
+#include <iostream>
+
 const char* LOG_LEVEL = "LogLevel";
 const char* PATHS_TO_WATCH = "paths_to_watch";
 const char* PATH = "path";
 const char* TYPE = "type";
 const char* API_KEY = "api_key";
+const char* KNOWN_FORMATS = "known_formats";
 
 static bool
 GetPaths(JsonNode::Ptr node, std::map<QString, int>& paths) {
@@ -40,11 +43,37 @@ GetLogLevel(JsonNode::Ptr node, int& log_level) {
     return true;
 }
 
+static bool
+GetFormats(JsonNode::Ptr node, std::set<QString>& formats) {
+
+    std::cout << "format1" << std::endl;
+    if (node->Has(KNOWN_FORMATS) == false)
+        return false;
+
+    std::cout << "format2" << std::endl;
+    auto format_str = node->GetString(KNOWN_FORMATS);
+    if (format_str.isEmpty())
+        return false;
+
+    auto list = format_str.split(";");
+    std::cout << "format3 " << list.size() << std::endl;
+    auto is_changed = false;
+    for (auto& i : list){
+        std::cout << "format " << i.toStdString() << std::endl;
+        auto result = formats.insert(i);
+        if (result.second)
+            is_changed = true;
+    }
+
+    return is_changed;
+}
+
 Configuration::Configuration(JsonNode::Ptr node, Logging::ILogger::Ptr logger)
- :_node(node)
- ,_logger(logger){
+    :_node(node)
+    ,_logger(logger){
     ::GetPaths(_node, _paths);
     ::GetLogLevel(_node, _log_level);
+    ::GetFormats(_node, _formats);
 }
 
 const std::map<QString, int>&
@@ -62,6 +91,11 @@ QString
 Configuration::GetApiKey() {
 
     return _node->GetString(API_KEY);
+}
+
+const std::set<QString>&
+Configuration::GetFormats(){
+    return _formats;
 }
 
 bool

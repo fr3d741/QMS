@@ -26,11 +26,12 @@ public:
     QJsonObject json_object;
     QJsonDocument json_doc;
     QJsonValue json_value;
+    QJsonParseError parse_error{};
 
     JsonNodeImpl(){}
 
     JsonNodeImpl(QString json_string){
-        json_doc = QJsonDocument::fromJson(json_string.toUtf8());
+        json_doc = QJsonDocument::fromJson(json_string.toUtf8(), &parse_error);
         json_object = json_doc.object();
     }
 
@@ -192,6 +193,10 @@ JsonNode::Parse(Logging::ILogger::Ptr logger, const QString& json) {
 
     Ptr node = Create(logger);
     node->_impl = std::make_shared<JsonNodeImpl>(json);
+
+    auto& error = node->_impl->parse_error;
+    if (error.error != QJsonParseError::NoError && logger)
+        logger->Error(QString("JSON parse error at offset %1: %2").arg(error.offset).arg(error.errorString()));
 
     return node;
 }
