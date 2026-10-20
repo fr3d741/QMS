@@ -185,7 +185,7 @@ FileSystemWatcher::WatchLoop() {
                 if(path.isEmpty() || !IsWatched(path) || !IsValidFormat(path))
                     continue;
 
-                _queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
+                _queue->Add(MessageBuilder::Create(Actions::Rescan).Message(path).Build());
             }
         }
     }
