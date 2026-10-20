@@ -286,6 +286,12 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
 bool
 CommonMedia::Init() {
 
+    if (_entry.isFile())
+    {
+        QFileInfo info(_entry.absoluteDir().absolutePath());
+        updateEntry(info);
+    }
+
     auto result_in_json = RestApi::SearchMovie(_title, _logger);
     if (initCore(result_in_json) == false){
         _logger->DebugMsg(QString("Searching without year for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
@@ -440,6 +446,12 @@ CommonMedia::extractActors(XmlNode& root, JsonNode::Ptr json, std::function<cons
         actor.AddChild(KodiWords(KodiTags::profile), profile_link);
         actor.AddChild(KodiWords(KodiTags::tmdbid), id);
     }
+}
+
+void
+CommonMedia::updateEntry(QFileInfo entry){
+    _entry = entry;
+    _title = entry.fileName();
 }
 
 const char* 

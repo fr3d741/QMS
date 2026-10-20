@@ -211,6 +211,14 @@ TvShow::TvShow(Logging::ILogger::Ptr logger, QFileInfo entry)
 bool
 TvShow::Init() {
 
+    if (_entry.isFile())
+    {
+        auto seasonDir = _entry.absoluteDir();
+        seasonDir.cdUp();
+        QFileInfo info(seasonDir.absolutePath());
+        updateEntry(info);
+    }
+
     auto result_in_json = RestApi::SearchTv(_title, _logger);
     if (initCore(result_in_json))
         return true;

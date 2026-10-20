@@ -15,8 +15,8 @@ namespace Media {
     protected:
         const char* tmdb_image_link = "https://image.tmdb.org/t/p/original";
         Logging::ILogger::Ptr _logger;
-        const QString _title;
-        const QFileInfo _entry;
+        QString _title;
+        QFileInfo _entry;
         ::MediaType _media_type;
         JsonNode::Ptr _details;
         bool _valid = true;
@@ -57,6 +57,7 @@ namespace Media {
         static bool IsMediaFile(const QString& path);
 
     protected:
+        void updateEntry(QFileInfo entry);
         virtual const char* Tmdb(TmdbTags key);
         virtual QString GetDetails(QString id);
         virtual QString GetFileName();
