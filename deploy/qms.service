@@ -1,0 +1,17 @@
+# Install:
+#   sudo tar xzf qms-linux-x86_64.tar.gz -C /opt
+#   sudo cp /opt/qms/qms.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now qms
+[Unit]
+Description=QMS media server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# config.json is loaded relative to the working directory
+WorkingDirectory=/opt/qms
+ExecStart=/opt/qms/server_daemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
