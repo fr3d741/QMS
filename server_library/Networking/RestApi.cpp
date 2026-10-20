@@ -9,10 +9,7 @@
 
 #include <curl/curl.h>
 
-#include <regex>
-#include <array>
 #include <chrono>
-#include <iostream>
 #include <assert.h>
 #include <thread>
 

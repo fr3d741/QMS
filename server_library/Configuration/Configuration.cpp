@@ -1,8 +1,6 @@
 #include <Configuration/Configuration.h>
 #include <QFileInfo>
 
-#include <iostream>
-
 const char* LOG_LEVEL = "LogLevel";
 const char* PATHS_TO_WATCH = "paths_to_watch";
 const char* PATH = "path";
@@ -46,20 +44,16 @@ GetLogLevel(JsonNode::Ptr node, int& log_level) {
 static bool
 GetFormats(JsonNode::Ptr node, std::set<QString>& formats) {
 
-    std::cout << "format1" << std::endl;
     if (node->Has(KNOWN_FORMATS) == false)
         return false;
 
-    std::cout << "format2" << std::endl;
     auto format_str = node->GetString(KNOWN_FORMATS);
     if (format_str.isEmpty())
         return false;
 
     auto list = format_str.split(";");
-    std::cout << "format3 " << list.size() << std::endl;
     auto is_changed = false;
     for (auto& i : list){
-        std::cout << "format " << i.toStdString() << std::endl;
         auto result = formats.insert(i);
         if (result.second)
             is_changed = true;
