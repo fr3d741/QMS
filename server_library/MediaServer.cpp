@@ -133,7 +133,6 @@ MediaServer::Start() {
             }
         }
 
-        _continue = false;
         std::this_thread::sleep_for(100ms);
     }
 }

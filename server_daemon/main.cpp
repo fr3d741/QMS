@@ -84,8 +84,6 @@ int main(int argc, char** argv)
 
     File_System::FileSystemWatcher fs(logger, message_queue);
 
-    fs.Start();
-
     enum Param{
         UpdateAll,
         SinglePath,
@@ -126,7 +124,7 @@ int main(int argc, char** argv)
         }
     }
 
-    std::function<void(MediaServer&)> func = [&](MediaServer& s){ };
+    std::function<void(MediaServer&)> func = [&](MediaServer&){ };
     IStreamWriter::Ptr stream_writer = std::make_shared<StreamWriter>();
 
     switch(options){
@@ -168,7 +166,11 @@ int main(int argc, char** argv)
             stream_writer = std::make_shared<DummyWriter>();
             break;
         case MonitorBackground:
-            func = [&](MediaServer& s) { s.Start(); };
+            {
+                fs.AddPath(config->GetWatchedPaths());
+                fs.Start();
+                func = [&](MediaServer& s) { s.Start(); };
+            }
             break;
         default:
             break;

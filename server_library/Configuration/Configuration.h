@@ -16,6 +16,7 @@ public:
     Configuration(JsonNode::Ptr node, Logging::ILogger::Ptr logger);
 
     const std::map<QString, int>& GetPaths() override;
+    const std::vector<QString> GetWatchedPaths() override;
     QString GetApiKey() override;
     bool LoadConfiguration(JsonNode::Ptr json) override;
     QString DumpConfiguration() override;

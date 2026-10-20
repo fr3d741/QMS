@@ -82,6 +82,16 @@ Configuration::GetPaths() {
     return _paths;
 }
 
+const std::vector<QString>
+Configuration::GetWatchedPaths(){
+    std::vector<QString> paths;
+    paths.reserve(_paths.size());
+    for (auto& i : _paths)
+        paths.push_back(i.first);
+
+    return paths;
+}
+
 int
 Configuration::GetLogLevel(){
     return _log_level;

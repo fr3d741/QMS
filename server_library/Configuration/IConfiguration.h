@@ -24,6 +24,7 @@ public:
     virtual bool LoadConfiguration(JsonNode::Ptr json) = 0;
     virtual QString DumpConfiguration() = 0;
     virtual const std::map<QString, int>& GetPaths() = 0;
+    virtual const std::vector<QString> GetWatchedPaths() = 0;
     virtual QString GetApiKey() = 0;
     virtual int GetLogLevel() = 0;
     virtual const std::set<QString>& GetFormats() = 0;
