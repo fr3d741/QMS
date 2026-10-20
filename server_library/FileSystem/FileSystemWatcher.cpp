@@ -1,4 +1,6 @@
 #include <FileSystem/FileSystemWatcher.h>
+#include <Configuration/IConfiguration.h>
+#include <Utility/Messagebuilder.h>
 
 #ifdef __linux__
 #include <sys/fanotify.h>
@@ -14,15 +16,16 @@
 #include <QFileInfo>
 #endif
 
-//#include <QFileSystemWatcher>
-
 using namespace File_System;
 
-// static QFileSystemWatcher&
-// getWatcher(){
-//     static QFileSystemWatcher fs_watch;
-//     return fs_watch;
-// }
+#ifdef __linux__
+static bool
+IsValidFormat(QString path){
+
+    static std::set<QString> formats = IConfiguration::Instance().GetFormats();
+    return std::any_of(formats.begin(), formats.end(), [&](QString f){ return path.endsWith(f); });
+}
+#endif
 
 FileSystemWatcher::FileSystemWatcher(Logging::ILogger::Ptr logger, IMessageQueue::Ptr message_queue)
     : _logger(logger)
@@ -179,10 +182,10 @@ FileSystemWatcher::WatchLoop() {
                 }
 
                 const QString path = ResolvePath(event);
-                if(path.isEmpty() || !IsWatched(path))
+                if(path.isEmpty() || !IsWatched(path) || !IsValidFormat(path))
                     continue;
 
-                // TODO: handle change (path, event->mask, event->pid)
+                _queue->Add(MessageBuilder::Create(Actions::Rescan).Message(it.first).Build());
             }
         }
     }
