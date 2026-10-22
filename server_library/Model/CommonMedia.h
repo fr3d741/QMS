@@ -54,6 +54,8 @@ namespace Media {
         virtual bool Init();
         virtual std::map<QString, XmlNode> CreateXml();
 
+        virtual QString GetPath() const;
+
         static bool IsMediaFile(const QString& path);
 
     protected:

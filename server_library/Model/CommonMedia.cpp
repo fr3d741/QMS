@@ -529,6 +529,12 @@ CommonMedia::CreateXml() {
     return xmls;
 }
 
+QString
+CommonMedia::GetPath() const {
+
+    return _entry.absoluteFilePath();
+}
+
 bool 
 CommonMedia::IsMediaFile(const QString& path) {
 

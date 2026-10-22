@@ -6,6 +6,7 @@
 
 #include <Utility/GeneralUtilities.h>
 #include <Utility/JsonNode.h>
+#include <Utility/messagebuilder.h>
 #include <Utility/timer.h>
 
 #include <Configuration/IConfiguration.h>
@@ -15,6 +16,7 @@
 #include <QMultiMap>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <QDir>
 #include <QFileInfo>
 #include <QDebug>
@@ -22,8 +24,79 @@
 using namespace std::chrono_literals;
 using G = GeneralUtilities;
 
+// Above this many rescans for the same media, the whole media is rescanned instead
+static const int max_rescans_per_media = 4;
+
+static bool
+IsConfiguredPath(QString path, const std::map<QString, int>& path_types) {
+
+#ifdef _WIN32
+    path = path.toLower();
+#endif
+    return path_types.count(path) > 0;
+}
+
+// Returns the media directory (one level below a configured root folder) that contains entry,
+// or an empty string when entry is a root folder itself or is not under any configured path
+static QString
+GetMediaRoot(const QString& entry, const std::map<QString, int>& path_types) {
+
+    QFileInfo info(entry);
+    while (true) {
+
+        if (IsConfiguredPath(info.absoluteFilePath(), path_types))
+            return {}; // a root folder holds many media, it is not a single media
+
+        auto parent = info.dir();
+        if (IsConfiguredPath(parent.absolutePath(), path_types))
+            return info.absoluteFilePath();
+
+        if (parent.isRoot())
+            return {};
+
+        info = QFileInfo(parent.absolutePath());
+    }
+}
+
+static void
+MergeRescansOfSameMedia(QMultiMap<int, QString>& messages, const std::map<QString, int>& path_types, Logging::ILogger::Ptr logger) {
+
+    const int rescan = static_cast<int>(Actions::Rescan);
+    if (messages.contains(rescan) == false)
+        return;
+
+    QMap<QString, QStringList> rescans_by_media; // media root -> rescan messages
+    QStringList unmergeable;
+    for (auto&& msg : messages.values(rescan)) {
+
+        auto root = JsonNode::Parse(logger, msg);
+        auto path = root->GetString(KeyWords(Keys::Message));
+        auto media_root = GetMediaRoot(path, path_types);
+        if (media_root.isEmpty())
+            unmergeable.append(msg);
+        else
+            rescans_by_media[media_root].append(msg);
+    }
+
+    messages.remove(rescan);
+    for (auto&& msg : std::as_const(unmergeable))
+        messages.insert(rescan, msg);
+
+    for (auto it = rescans_by_media.cbegin(); it != rescans_by_media.cend(); ++it) {
+
+        if (it.value().size() < max_rescans_per_media) {
+            for (auto&& msg : it.value())
+                messages.insert(rescan, msg);
+            continue;
+        }
+
+        logger->DebugMsg(QString("Merging %1 rescans into %2").arg(it.value().size()).arg(it.key()));
+        messages.insert(rescan, MessageBuilder::Create(Actions::Rescan).Message(it.key()).Build());
+    }
+}
+
 static QMultiMap<int, QString>
-MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
+MergeMessages(std::list<QString>& local_storage, const std::map<QString, int>& path_types, Logging::ILogger::Ptr logger) {
 
     QMultiMap<int, QString> messages;
     for (auto&& msg : local_storage) {
@@ -58,6 +131,7 @@ MergeMessages(std::list<QString>& local_storage, Logging::ILogger::Ptr logger) {
             messages.insert(type, msg);
     }
 
+    MergeRescansOfSameMedia(messages, path_types, logger);
     return messages;
 }
 
@@ -115,10 +189,10 @@ MediaServer::Start() {
                 _session_cache.clear();
                 process_count_started = false;
 
-                auto messages = MergeMessages(local_storage, _logger);
+                auto&& paths = IConfiguration::Instance().GetPaths();
+                auto messages = MergeMessages(local_storage, paths, _logger);
                 local_storage.clear();
 
-                auto&& paths = IConfiguration::Instance().GetPaths();
                 for (auto item : std::as_const(messages))
                     processMessage(item, paths);
 
@@ -155,10 +229,10 @@ MediaServer::ProcessOnce(){
         }
     }
 
-    auto messages = MergeMessages(local_storage, _logger);
+    auto&& paths = IConfiguration::Instance().GetPaths();
+    auto messages = MergeMessages(local_storage, paths, _logger);
     local_storage.clear();
 
-    auto&& paths = IConfiguration::Instance().GetPaths();
     for (auto item : std::as_const(messages))
         processMessage(item, paths);
     if (_dirty_cache)

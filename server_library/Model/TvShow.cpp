@@ -45,6 +45,35 @@ ConvertToCommonFormat(const QString& str) {
 }
 
 static void
+ParseSeasonEpisode(const std::string& episode_nr, int& season, int& episode) {
+
+    const std::regex number_filter("[0-9]{1,3}");
+    auto it = std::sregex_iterator(episode_nr.begin(), episode_nr.end(), number_filter);
+
+    season = stoi(it->str());
+    ++it;
+    episode = stoi(it->str());
+}
+
+static XmlNode
+CreateEmptyEpisodeXml(const std::string& episode_nr) {
+
+    int season, episode;
+    ParseSeasonEpisode(episode_nr, season, episode);
+
+    XmlNode root("episodedetails");
+    root.AddChild(KodiWords(KodiTags::season), QString::number(season));
+    root.AddChild(KodiWords(KodiTags::episode), QString::number(episode));
+    return root;
+}
+
+static QString
+GetEpisodeNfoPath(const QFileInfo& info) {
+
+    return info.absolutePath() + "/" + info.completeBaseName().append(".nfo");
+}
+
+static void
 GatherEpisodesFromFS(Logging::ILogger::Ptr logger, QDir dir_entry, std::map<std::string, QString>& season_episodes) {
 
     std::setlocale(LC_ALL, "");
@@ -213,6 +242,9 @@ TvShow::Init() {
 
     if (_entry.isFile())
     {
+        if (CommonMedia::IsMediaFile(_entry.fileName()))
+            _episode_entry = _entry;
+
         auto seasonDir = _entry.absoluteDir();
         seasonDir.cdUp();
         QFileInfo info(seasonDir.absolutePath());
@@ -248,9 +280,24 @@ TvShow::Init() {
 std::map<QString, XmlNode>
 TvShow::CreateXml() {
 
-    auto result_map = CommonMedia::CreateXml();
-    CreateEpisodeNfos(result_map);
+    std::map<QString, XmlNode> result_map;
+    if (_episode_entry.filePath().isEmpty())
+    {
+        result_map = CommonMedia::CreateXml();
+        CreateEpisodeNfos(result_map);
+    }
+    else
+        CreateSingleEpisodeNfo(result_map);
+
     return result_map;
+}
+
+QString
+TvShow::GetPath() const {
+
+    if (_episode_entry.filePath().isEmpty())
+        return CommonMedia::GetPath();
+    return _episode_entry.absoluteFilePath();
 }
 
 const char* 
@@ -284,30 +331,46 @@ TvShow::CreateEpisodeNfos(std::map<QString, XmlNode>& result_map) {
     const std::filesystem::path extension(".nfo");
     for (auto&& item : season_episodes) {
 
-        QFileInfo info(item.second);
-        auto path = info.absolutePath() + "/" + info.completeBaseName().append(".nfo");
+        auto path = GetEpisodeNfoPath(QFileInfo(item.second));
 
         if (proposed_episode_mapping.count(item.first) < 1) {
-
-            auto episode_nr = item.first;
-            const std::regex number_filter("[0-9]{1,3}");
-            auto it = std::sregex_iterator(episode_nr.begin(), episode_nr.end(), number_filter);
-
-            const int season = stoi(it->str());
-            ++it;
-            const int episode = stoi(it->str());
-
-            XmlNode root("episodedetails");
-            root.AddChild(KodiWords(KodiTags::season), QString::number(season));
-            root.AddChild(KodiWords(KodiTags::episode), QString::number(episode));
-
-            result_map[path] = root;
+            result_map[path] = CreateEmptyEpisodeXml(item.first);
             continue;
         }
 
         auto epiosde_json = proposed_episode_mapping[item.first];
         result_map[path] = CreateEpisodeXml(epiosde_json, item.first);
     }
+}
+
+void
+TvShow::CreateSingleEpisodeNfo(std::map<QString, XmlNode>& result_map) {
+
+    const static QRegularExpression episode_filter("S[0-9]{1,3}E[0-9]{1,3}", QRegularExpression::PatternOption::CaseInsensitiveOption);
+
+    auto episode_match = episode_filter.match(_episode_entry.fileName());
+    if (episode_match.hasMatch() == false)
+    {
+        XmlNode root("Incorrect file pattern");
+        root.AddAttribute("file", _episode_entry.absoluteFilePath());
+        _logger->DebugMsg(root.Dump());
+        return;
+    }
+
+    const auto episode_nr = ConvertToCommonFormat(episode_match.captured());
+    const auto path = GetEpisodeNfoPath(_episode_entry);
+
+    int season, episode;
+    ParseSeasonEpisode(episode_nr, season, episode);
+
+    auto show_id = _details->GetInt(Tmdb(TmdbTags::id));
+    auto episode_json = JsonNode::Parse(_logger, RestApi::Episode(QString::number(show_id), season, episode, _logger));
+    if (episode_json->Has(Tmdb(TmdbTags::name)) == false) {
+        result_map[path] = CreateEmptyEpisodeXml(episode_nr);
+        return;
+    }
+
+    result_map[path] = CreateEpisodeXml(episode_json, episode_nr);
 }
 
 void
@@ -360,12 +423,8 @@ TvShow::initCore(QString result_in_json) {
 XmlNode
 TvShow::CreateEpisodeXml(JsonNode::Ptr json, const std::string& episode_nr) {
 
-    const std::regex number_filter("[0-9]{1,3}");
-    auto it = std::sregex_iterator(episode_nr.begin(), episode_nr.end(), number_filter);
-
-    const int season = stoi(it->str());
-    ++it;
-    const int episode = stoi(it->str());
+    int season, episode;
+    ParseSeasonEpisode(episode_nr, season, episode);
 
     XmlNode root("episodedetails");
     root.AddChild(KodiWords(KodiTags::title), json->GetString(TmdbWords(TmdbTags::name, MediaType::TvShow)));

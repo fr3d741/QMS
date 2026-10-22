@@ -178,3 +178,10 @@ RestApi::Season(const QString& id, int season_nr, Logging::ILogger::Ptr log) {
     return SendRequest(request, log, ApiKey());
 }
 
+QString
+RestApi::Episode(const QString& id, int season_nr, int episode_nr, Logging::ILogger::Ptr log) {
+
+    auto request = "https://api.themoviedb.org/3/tv/" + id + "/season/" + QString::number(season_nr) + "/episode/" + QString::number(episode_nr) + "?api_key=%1&append_to_response=translations";
+    return SendRequest(request, log, ApiKey());
+}
+
