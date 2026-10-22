@@ -19,9 +19,7 @@ public:
 
     XmlNode& AddChild(const std::string& element);
     XmlNode& AddChild(const std::string& element, const QString& value);
-    //XmlNode& AddChild(const std::string& element, const std::string& value);
     void AddAttribute(const std::string& attr, const QString& value);
-    //void AddAttribute(const std::string& attr, const std::string& value);
 
     QString Dump(int tab = 0);
 };

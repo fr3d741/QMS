@@ -4,7 +4,6 @@
 #include <Utility/GeneralUtilities.h>
 #include <Configuration/IConfiguration.h>
 
-#include <regex>
 #include <set>
 #include <QDir>
 #include <QRegularExpression>
@@ -28,10 +27,6 @@ struct Key {
     bool operator<(const Key& other) const {
         return _hash < other._hash;
     }
-};
-
-struct KeyComp {
-
 };
 
 static int 
@@ -143,13 +138,6 @@ CommonMedia::Fill(Logging::ILogger::Ptr logger, XmlNode& root, JsonNode::Ptr jso
             if (json->Has(Tmdb(TmdbTags::release_date)))
             {
                 auto date = json->GetString(Tmdb(TmdbTags::release_date));
-
-//                const QRegularExpression regex("[0-9]{4}");
-//                std::smatch match;
-//                if (std::regex_search(date, match, regex) == false)
-//                    break;
-
-//                std::string year = match.str();
                 auto date_time = QDate::fromString(date,"yyyy-MM-dd");
                 if (date_time.isValid()){
                     root.AddChild(KodiWords(KodiTags::year), QString::number(date_time.year()));
@@ -328,7 +316,6 @@ CommonMedia::GetDetails(JsonNode::Ptr json_ptr, std::function<QString(JsonNode::
 
         bool is_match_date, is_match_title;
         js = SelectExactMatchOrNone(_media_type, _title, values, get_title_fn, is_match_date, is_match_title);
-        //js = SelectOne(_media_type, _title, values, get_title_fn, is_match_date, is_match_title);
 
         _logger->DebugMsg("Multiple results for " + _entry.absoluteFilePath());
         if (js != nullptr) {

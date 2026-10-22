@@ -14,11 +14,9 @@ class DLL MediaServer {
 
     Logging::ILogger::Ptr _logger;
     IMessageQueue::Ptr _queue;
-    QSet<QString> _cache;
     QSet<QString> _session_cache;
     IStreamWriter::Ptr _writer;
     bool _continue = true;
-    bool _dirty_cache = false;
 
 public:
     MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer);
@@ -30,6 +28,4 @@ public:
 private:
     void processMessage(QString& message, const std::map<QString, int>& path_types);
     void updatePath(QFileInfo dir_entry, MediaType media_type);
-    void loadCache();
-    bool saveCache();
 };

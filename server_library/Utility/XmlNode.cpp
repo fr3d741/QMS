@@ -1,9 +1,7 @@
 #include <Utility/XmlNode.h>
 #include <Utility/GeneralUtilities.h>
 
-#include <exception>
 #include <stdexcept>
-#include <sstream>
 #include <QTextStream>
 
 using G = GeneralUtilities;
@@ -36,20 +34,10 @@ XmlNode::AddChild(const std::string& element, const QString& value) {
     return _children.back();
 }
 
-//XmlNode&
-//XmlNode::AddChild(const std::string& element, const std::string& value) {
-//    return AddChild(element, QString::fromStdString(value));
-//}
-
 void
 XmlNode::AddAttribute(const std::string& attr, const QString& value) {
     _attributes[attr] = value;
 }
-
-//void
-//XmlNode::AddAttribute(const std::string& attr, const std::string& value) {
-//    AddAttribute(attr, QString::fromStdString(value));
-//}
 
 static QString
 tabs(int n) {

@@ -18,7 +18,6 @@
 
 #include <string>
 #include <memory>
-#include <locale.h>
 
 #include <QFile>
 #include <QTextStream>
@@ -180,9 +179,6 @@ void mainCore(int argc, char** argv, Logging::ILogger::Ptr logger){
 
 int main(int argc, char** argv)
 {
-    std::setlocale(LC_ALL, "");
-    std::locale::global(std::locale(""));
-
     auto logger = std::make_shared<Logging::Logger>();
     logger->Start();
 

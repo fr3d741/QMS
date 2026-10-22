@@ -167,8 +167,6 @@ MediaServer::Start() {
     Timer idle_timer;
     bool process_count_started = false;
 
-    loadCache();
-
     while (_continue) {
 
         if (_queue->HasMessage()) {
@@ -201,14 +199,10 @@ MediaServer::Start() {
             }
         }
 
-        if (_dirty_cache){
 
-            if (10 <= idle_timer.ElapsedSeconds()) {
-                if (saveCache())
-                    _dirty_cache = false;
-                idle_timer.ReStart();
-            }
-        }
+        // if (10 <= idle_timer.ElapsedSeconds()) {
+        //     idle_timer.ReStart();
+        // }
 
         std::this_thread::sleep_for(100ms);
     }
@@ -218,8 +212,6 @@ void
 MediaServer::ProcessOnce(){
 
     std::list<QString> local_storage;
-
-    loadCache();
 
     if (_queue->HasMessage()) {
         auto msg = _queue->BulkPop();
@@ -235,8 +227,6 @@ MediaServer::ProcessOnce(){
 
     for (auto item : std::as_const(messages))
         processMessage(item, paths);
-    if (_dirty_cache)
-        saveCache();
 }
 
 void
@@ -248,8 +238,6 @@ MediaServer::UpdateSinglePath(QString path){
     auto&& paths = IConfiguration::Instance().GetPaths();
     QFileInfo info(path);
     auto type = GetMediaType(info.absoluteFilePath(), paths);
-    _cache.remove(path);
-    _dirty_cache = true;
     updatePath(info, static_cast<MediaType>(type));
 }
 
@@ -276,8 +264,6 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
                 if (QFileInfo::exists(path)){
                     QFileInfo info(path);
                     auto type = GetMediaType(path, path_types);
-                    _cache.remove(path);
-                    _dirty_cache = true;
                     if (path_types.count(path)){
                         QDir path_as_dir(info.absoluteFilePath());
                         for (auto const& dir_entry : path_as_dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
@@ -308,13 +294,6 @@ void
 MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
 
     auto path = dir_entry.absoluteFilePath();
-    { // do not parse until cache cleared
-
-        if (_cache.contains(path))
-            return;
-        _cache.insert(path);
-        _dirty_cache = true;
-    }
 
     // if (std::any_of(_session_cache.begin(), _session_cache.end(), [&](QString c){ return path.startsWith(c); }))
     //     return;
@@ -344,55 +323,4 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
 
         _writer->Write(it.first, it.second.Dump());
     }
-}
-
-static bool
-loadCache(QSet<QString>& cache){
-
-    if (!QFileInfo::exists("cache"))
-        return true;
-
-    QFile file("cache");
-    if (file.open(QIODevice::ReadOnly) == false)
-        return false;
-
-    cache.clear();
-
-    QTextStream stream(&file);
-//    for(auto&& item : cache){
-//        cache.insert(stream.readLine());
-//    }
-    file.close();
-    return true;
-}
-
-void
-MediaServer::loadCache(){
-
-    const int max_retry = 30;
-    int num_retry = 0;
-    while(num_retry < max_retry && ::loadCache(_cache) == false){
-        num_retry++;
-        std::this_thread::sleep_for(1s);
-    }
-
-    if (num_retry == max_retry){
-        _logger->Error("Failed to open cache file. Terminate");
-        _continue = false;
-    }
-}
-
-bool
-MediaServer::saveCache(){
-
-    QFile file("cache");
-    if (file.open(QIODevice::WriteOnly) == false)
-        return false;
-
-    QTextStream stream(&file);
-    for(auto&& item : std::as_const(_cache)){
-        stream << item << Qt::endl;
-    }
-    file.close();
-    return true;
 }

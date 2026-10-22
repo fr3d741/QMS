@@ -76,9 +76,6 @@ GetEpisodeNfoPath(const QFileInfo& info) {
 static void
 GatherEpisodesFromFS(Logging::ILogger::Ptr logger, QDir dir_entry, std::map<std::string, QString>& season_episodes) {
 
-    std::setlocale(LC_ALL, "");
-    std::locale::global(std::locale(""));
-
     for (auto const& season_dir : dir_entry.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs)) {
 
         const std::regex season_filter("season.[0-9]{1,3}", std::regex_constants::icase);
@@ -198,38 +195,6 @@ GetAllSeasonConfigurations(Logging::ILogger::Ptr logger, const int nr_of_seasons
         }
     }
 
-#ifdef skip
-    {
-        // check for alternate episode groups
-        auto episode_groups_json_string = RestApi::EpisodeGroups(show_id, logger);
-        auto ep_group_json = JsonNode::Parse(logger, episode_groups_json_string);
-        auto group_results_array = ep_group_json->GetArray(TmdbWords(TmdbTags::results, MediaType::TvShow));
-        if (group_results_array.empty())
-            return to_return;
-
-        for (auto it : group_results_array) {
-            auto group_id = it->GetString(TmdbWords(TmdbTags::id, MediaType::TvShow));
-            auto group_str = RestApi::EpisodeGroup(group_id, logger);
-            auto group_json = JsonNode::Parse(logger, group_str);
-
-            std::map<std::string, JsonNode::Ptr> episodes_map;
-            auto group_array = group_json->GetArray(TmdbWords(TmdbTags::groups, MediaType::TvShow));
-            for (size_t i = 0; i < group_array.size(); ++i) {
-
-                GatherEpisodesFromJson(group_array[i], episodes_map);
-            }
-
-            if (is_includes(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end()))
-                return episodes_map;
-
-            auto count = count_intersection(episodes_map.begin(), episodes_map.end(), reference.begin(), reference.end());
-            if (to_return.size() < count) {
-                to_return = std::move(episodes_map);
-            }
-        }
-    }
-#endif
-
     return to_return;
 }
 
@@ -262,7 +227,7 @@ TvShow::Init() {
 
     _logger->DebugMsg(QString("Searching by replaceing character for %1 => %2").arg(_title).arg(_entry.absoluteFilePath()));
     QString new_title;
-    for(auto c : _title) {
+    for(auto& c : std::as_const(_title)) {
         if (c.isDigit() || c.isLetter() || c == '(' || c == ')')
             new_title.append(c);
         else

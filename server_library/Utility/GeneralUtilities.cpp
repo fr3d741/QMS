@@ -1,110 +1,11 @@
 #include <Utility/GeneralUtilities.h>
 
-#include <algorithm>
-#include <locale>
 #include <regex>
 #include <array>
-#include <codecvt>
 #include <limits>
 
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
-
-//void
-//GeneralUtilities::RightTrim(string& str) {
-
-//    for (int i = static_cast<int>(str.size()) - 1; 0 <= i; --i)
-//        if (str[i] == ' ')
-//            str.erase(i);
-//        else
-//            break;
-//}
-
-//void
-//GeneralUtilities::RightTrim(std::string& str) {
-
-//    for (int i = static_cast<int>(str.size()) - 1; 0 <= i; --i)
-//        if (str[i] == ' ')
-//            str.erase(i);
-//        else
-//            break;
-//}
-
-//void
-//GeneralUtilities::LeftTrim(string& str) {
-
-//    for (auto it = str.begin(); it != str.end();)
-//        if (*it == ' ')
-//            str.erase(it);
-//        else
-//            break;
-//}
-
-//void
-//GeneralUtilities::LeftTrim(std::string& str) {
-
-//    for (auto it = str.begin(); it != str.end();)
-//        if (*it == ' ')
-//            str.erase(it);
-//        else
-//            break;
-//}
-
-//bool
-//GeneralUtilities::AreEqualCaseInsensitive(std::string str1, std::string str2) {
-//    return std::equal(str1.begin(), str1.end(), str2.begin(), str2.end(), [](char a, char b) { return ::tolower(a) == ::tolower(b); });
-//}
-
-//bool
-//GeneralUtilities::AreEqualCaseInsensitive(string str1, string str2) {
-//    return std::equal(str1.begin(), str1.end(), str2.begin(), str2.end(), [](wchar_t a, wchar_t b) { return ::tolower(a) == ::tolower(b); });
-//}
-
-//string
-//GeneralUtilities::Convert(const std::string& str) {
-
-//    //std::setlocale(LC_ALL, "");
-//    //std::locale::global(std::locale(""));
-//    //std::wstring_convert<std::codecvt<wchar_t, char, std::mbstate_t>> converter;
-//    //return converter.from_bytes(str);
-
-//    std::wstring_convert<std::codecvt_utf8<char_t>, char_t> conv_utf8_utf32;
-//    string unicode_codepoints = conv_utf8_utf32.from_bytes(str);
-//    return unicode_codepoints;
-//}
-
-//std::string
-//GeneralUtilities::Convert(const string& str) {
-
-//    //std::setlocale(LC_ALL, "");
-//    //std::locale::global(std::locale(""));
-//    //std::vector<char> char_array(str.size() * 2);
-
-//    //auto res = std::wcstombs(char_array.data(), str.c_str(), str.size());
-//    //if (res == static_cast<std::size_t>(-1))
-//    //    res = 0;
-//    //return std::string(char_array.data(), res);
-//    std::wstring_convert<std::codecvt_utf8<char_t>, char_t> conv_utf8_utf32;
-//    std::string unicode_codepoints = conv_utf8_utf32.to_bytes(str);
-//    return unicode_codepoints;
-//}
-
-//bool
-//GeneralUtilities::Contains(const string& in, const string& what) {
-
-//    for (auto it = what.begin(), it2 = in.begin(); it2 != in.end(); ++it2) {
-
-//        if (it == what.end())
-//            return true;
-
-//        if (*it != *it2)
-//            it = what.begin();
-//        else
-//            ++it;
-//    }
-
-//    return false;
-//}
 
 bool
 GeneralUtilities::IsValid(const int value){
