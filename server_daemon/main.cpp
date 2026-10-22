@@ -2,7 +2,6 @@
 
 #include <Factories/ConfigurationFactory.h>
 #include <Factories/MessageQueueFactory.h>
-#include <Factories/TcpServerFactory.h>
 
 #include <Logging/Logger.h>
 
@@ -73,9 +72,6 @@ void mainCore(int argc, char** argv, Logging::ILogger::Ptr logger){
     RestApi::ApiKey() = config->GetApiKey();
     auto message_queue = MessageQueueFactory::CreateMessageQueue();
 
-    auto tcp_server = TcpServerFactory::CreateTcpServer(message_queue);
-
-
     File_System::FileSystemWatcher fs(logger, message_queue);
 
     enum Param{
@@ -86,6 +82,9 @@ void mainCore(int argc, char** argv, Logging::ILogger::Ptr logger){
         MonitorBackground,
 
     };
+
+    // message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message("f:\\Source\\QMS\\build\\Friends (1994)\\Season 01\\S01E01.mkv").Build());
+    // message_queue->Add(MessageBuilder::Create(Actions::Rescan).Message("f:\\Source\\QMS\\build\\Friends (1994)\\Season 01\\S01E02.mkv").Build());
 
     Param options = UpdateAll;
     int type = -1; // 0 - movie, 1 - twshow
@@ -170,7 +169,7 @@ void mainCore(int argc, char** argv, Logging::ILogger::Ptr logger){
         break;
     }
 
-    auto server = MediaServer(logger, message_queue, stream_writer, tcp_server);
+    auto server = MediaServer(logger, message_queue, stream_writer);
     try{
         func(server);
     }

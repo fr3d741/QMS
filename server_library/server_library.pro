@@ -28,14 +28,12 @@ SOURCES += \
     Configuration/IConfiguration.cpp \
     Factories/ConfigurationFactory.cpp \
     Factories/MessageQueueFactory.cpp \
-    Factories/TcpServerFactory.cpp \
     FileSystem/FileSystemWatcher.cpp \
     Logging/Logger.cpp \
     MediaServer.cpp \
     Model/CommonMedia.cpp \
     Model/TvShow.cpp \
     Networking/RestApi.cpp \
-    Networking/TcpServer.cpp \
     Utility/GeneralUtilities.cpp \
     Utility/JsonNode.cpp \
     Utility/MessageQueue.cpp \
@@ -51,7 +49,6 @@ HEADERS += \
     Configuration/IConfiguration.h \
     Factories/ConfigurationFactory.h \
     Factories/MessageQueueFactory.h \
-    Factories/TcpServerFactory.h \
     FileSystem/FileSystemWatcher.h \
     Logging/ILogger.h \
     Logging/Logger.h \
@@ -59,9 +56,7 @@ HEADERS += \
     MediaServer.h \
     Model/CommonMedia.h \
     Model/TvShow.h \
-    Networking/ITcpServer.h \
     Networking/RestApi.h \
-    Networking/TcpServer.h \
     Utility/GeneralUtilities.h \
     Utility/IMessageQueue.h \
     Utility/JsonNode.h \

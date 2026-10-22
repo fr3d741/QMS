@@ -78,11 +78,10 @@ GetMediaType(QString entry, const std::map<QString, int>& path_types){
     return GetMediaType(d.absolutePath(), path_types);
 }
 
-MediaServer::MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer, Networking::ITcpServer::Ptr server)
+MediaServer::MediaServer(Logging::ILogger::Ptr logger, IMessageQueue::Ptr queue, IStreamWriter::Ptr writer)
     : _logger(logger)
     , _queue(queue)
-    , _writer(writer)
-    , _server(server) {
+    , _writer(writer) {
 
 }
 
@@ -113,6 +112,7 @@ MediaServer::Start() {
 
             if (60 <= timer.ElapsedSeconds()) {
 
+                _session_cache.clear();
                 process_count_started = false;
 
                 auto messages = MergeMessages(local_storage, _logger);
@@ -123,6 +123,7 @@ MediaServer::Start() {
                     processMessage(item, paths);
 
                 idle_timer.ReStart();
+                _session_cache.clear();
             }
         }
 
@@ -223,22 +224,6 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
                 }
             }
             break;
-        case Actions::Test:
-            qDebug() << "Test message" << root->GetString(KeyWords(Keys::Message));
-            break;
-        case Actions::Quit:
-            _continue = false;
-            break;
-        case Actions::Request: {
-                auto msg = IConfiguration::Instance().DumpConfiguration();
-                _server->SendResponse(msg);
-            }
-            break;
-        case Actions::ReConfigure:
-            break;
-        case Actions::Ping:
-            _server->SendResponse("pong");
-            break;
         case Actions::Last:
         default:
             break;
@@ -257,6 +242,9 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
         _dirty_cache = true;
     }
 
+    // if (std::any_of(_session_cache.begin(), _session_cache.end(), [&](QString c){ return path.startsWith(c); }))
+    //     return;
+
     qDebug() << path;
 
     std::shared_ptr<Media::CommonMedia> media;
@@ -269,12 +257,14 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
             media = std::make_shared<Media::TvShow>(_logger, dir_entry);
             break;
         default:
-            break;
+            _logger->Error("Unrecognized media file " + path);
+            return;
     }
 
     if (media->Init() == false)
         _logger->Error("Failed to process " + path);
 
+    _session_cache.insert(media->GetPath());
     auto nodes = media->CreateXml();
     for (auto&& it : nodes) {
 

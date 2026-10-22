@@ -14,12 +14,7 @@ enum class Keys {
 
 enum class Actions {
     Path_Update,
-    Test,
-    Quit,
     Rescan,
-    ReConfigure,
-    Request,
-    Ping,
     Last
 };
 
