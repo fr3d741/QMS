@@ -7,6 +7,7 @@ const char* PATH = "path";
 const char* TYPE = "type";
 const char* API_KEY = "api_key";
 const char* KNOWN_FORMATS = "known_formats";
+const char* KODI_ADDRESS = "kodi";
 
 static bool
 GetPaths(JsonNode::Ptr node, std::map<QString, int>& paths) {
@@ -46,25 +47,32 @@ GetLogLevel(JsonNode::Ptr node, int& log_level) {
     return true;
 }
 
-static bool
-GetFormats(JsonNode::Ptr node, std::set<QString>& formats) {
+static std::set<QString>
+GetFormats(JsonNode::Ptr node) {
 
+    std::set<QString> default_set = {".mkv",".avi",".mpeg",".mov",".wmv",".mp4",".m4p",".m4v"};
     if (node->Has(KNOWN_FORMATS) == false)
-        return false;
+        return default_set;
 
     auto format_str = node->GetString(KNOWN_FORMATS);
     if (format_str.isEmpty())
-        return false;
+        return default_set;
 
     auto list = format_str.split(";");
-    auto is_changed = false;
-    for (auto& i : list){
-        auto result = formats.insert(i);
-        if (result.second)
-            is_changed = true;
-    }
+    std::set<QString> formats;
+    for (auto& i : list)
+        formats.insert(i);
 
-    return is_changed;
+    return formats;
+}
+
+static QString
+GetValue(JsonNode::Ptr node, const char* key){
+
+    if (node->Has(key) == false)
+        return "";
+
+    return node->GetString(key);
 }
 
 Configuration::Configuration(JsonNode::Ptr node, Logging::ILogger::Ptr logger)
@@ -72,7 +80,6 @@ Configuration::Configuration(JsonNode::Ptr node, Logging::ILogger::Ptr logger)
     ,_logger(logger){
     ::GetPaths(_node, _paths);
     ::GetLogLevel(_node, _log_level);
-    ::GetFormats(_node, _formats);
 }
 
 const std::map<QString, int>&
@@ -104,7 +111,15 @@ Configuration::GetApiKey() {
 
 const std::set<QString>&
 Configuration::GetFormats(){
+    static std::set<QString> _formats = ::GetFormats(_node);
     return _formats;
+}
+
+const QString
+Configuration::kodiAddress(){
+
+    static QString kodi = GetValue(_node, KODI_ADDRESS);
+    return kodi;
 }
 
 bool

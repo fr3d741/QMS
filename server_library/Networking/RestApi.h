@@ -19,4 +19,6 @@ public:
     static QString EpisodeGroup(const QString& group_id, Logging::ILogger::Ptr log);
     static QString Season(const QString& id, int season_nr, Logging::ILogger::Ptr log);
     static QString Episode(const QString& id, int season_nr, int episode_nr, Logging::ILogger::Ptr log);
+
+    static bool KodiVideoLibraryScan(Logging::ILogger::Ptr log);
 };

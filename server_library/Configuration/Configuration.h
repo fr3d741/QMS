@@ -9,7 +9,6 @@ class DLL Configuration : public IConfiguration
 {
     std::map<QString, int> _paths;
     int _log_level = 0;
-    std::set<QString> _formats;
     JsonNode::Ptr _node;
     Logging::ILogger::Ptr _logger;
 public:
@@ -22,5 +21,6 @@ public:
     QString DumpConfiguration() override;
     int GetLogLevel() override;
     const std::set<QString>& GetFormats() override;
+    virtual const QString kodiAddress() override;
 };
 

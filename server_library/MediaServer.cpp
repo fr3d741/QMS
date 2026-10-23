@@ -10,6 +10,7 @@
 #include <Utility/timer.h>
 
 #include <Configuration/IConfiguration.h>
+#include <Networking/RestApi.h>
 
 #include <thread>
 
@@ -194,11 +195,13 @@ MediaServer::Start() {
                 for (auto item : std::as_const(messages))
                     processMessage(item, paths);
 
+                if (_queue->HasMessage() == false && local_storage.empty())
+                    RestApi::KodiVideoLibraryScan(_logger);
+
                 idle_timer.ReStart();
                 _session_cache.clear();
             }
         }
-
 
         // if (10 <= idle_timer.ElapsedSeconds()) {
         //     idle_timer.ReStart();

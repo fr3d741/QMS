@@ -28,4 +28,5 @@ public:
     virtual QString GetApiKey() = 0;
     virtual int GetLogLevel() = 0;
     virtual const std::set<QString>& GetFormats() = 0;
+    virtual const QString kodiAddress() = 0;
 };

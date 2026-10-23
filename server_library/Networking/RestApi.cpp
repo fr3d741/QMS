@@ -185,3 +185,58 @@ RestApi::Episode(const QString& id, int season_nr, int episode_nr, Logging::ILog
     return SendRequest(request, log, ApiKey());
 }
 
+bool
+RestApi::KodiVideoLibraryScan(Logging::ILogger::Ptr log) {
+
+    auto address = IConfiguration::Instance().kodiAddress().trimmed();
+    if (address.isEmpty())
+        return false;
+
+    // Accept a bare IP address as well as a full URL; Kodi listens on port 8080 by default
+    QUrl url = QUrl::fromUserInput(address);
+    if (url.port() == -1)
+        url.setPort(8080);
+    url.setPath("/jsonrpc");
+
+    std::string std_url = url.toString().toStdString();
+    std::string body = R"({"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1})";
+    std::string result;
+
+#ifndef  DISABLE_REST_API
+    CURL* curl = curl_easy_init();
+    if (curl == nullptr){
+        log->Error(QString("CURL init failed"));
+        return false;
+    }
+
+    ScopedFunction fn_curl([=]() { curl_easy_cleanup(curl); });
+    curl_slist* headers = curl_slist_append(nullptr, "Content-Type: application/json");
+    ScopedFunction fn_headers([=]() { curl_slist_free_all(headers); });
+
+    curl_easy_setopt(curl, CURLOPT_URL, std_url.data());
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    CURLcode res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        log->Error(QString("Kodi VideoLibrary.Scan failed: %1, Url: %2").arg(curl_easy_strerror(res)).arg(url.toString()));
+        return false;
+    }
+
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    if (http_code != 200) {
+        log->Error(QString("Kodi VideoLibrary.Scan failed: HTTP %1, Url: %2").arg(http_code).arg(url.toString()));
+        return false;
+    }
+#endif //  DISABLE_REST_API
+
+    log->LogMessage("Kodi VideoLibrary.Scan: " + QString::fromStdString(result), Logging::LogLevel::All);
+    return true;
+}
+
