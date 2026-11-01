@@ -67,8 +67,7 @@ FileSystemWatcher::Start() {
         return;
     }
 
-    const uint64_t mask = FAN_CREATE | FAN_DELETE | FAN_MODIFY | FAN_CLOSE_WRITE
-                        | FAN_MOVED_FROM | FAN_MOVED_TO | FAN_ONDIR;
+    const uint64_t mask = FAN_CREATE | FAN_CLOSE_WRITE | FAN_MOVED_TO;
 
     for(auto& path : _paths) {
         const QString root = QFileInfo(path).canonicalFilePath();

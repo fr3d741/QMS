@@ -26,6 +26,6 @@ public:
     void UpdateSinglePath(QString path);
 
 private:
-    void processMessage(QString& message, const std::map<QString, int>& path_types);
-    void updatePath(QFileInfo dir_entry, MediaType media_type);
+    bool processMessage(QString& message, const std::map<QString, int>& path_types);
+    bool updatePath(QFileInfo dir_entry, MediaType media_type);
 };

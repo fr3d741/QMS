@@ -166,6 +166,7 @@ MediaServer::Start() {
     std::list<QString> local_storage;
     Timer timer;
     Timer idle_timer;
+    auto five_minutes = 60 * 5;
     bool process_count_started = false;
 
     while (_continue) {
@@ -183,7 +184,7 @@ MediaServer::Start() {
 
         if (process_count_started) {
 
-            if (60 <= timer.ElapsedSeconds()) {
+            if (five_minutes <= timer.ElapsedSeconds()) {
 
                 _session_cache.clear();
                 process_count_started = false;
@@ -192,10 +193,11 @@ MediaServer::Start() {
                 auto messages = MergeMessages(local_storage, paths, _logger);
                 local_storage.clear();
 
+                auto hasAnyChange = false;
                 for (auto item : std::as_const(messages))
-                    processMessage(item, paths);
+                    hasAnyChange = processMessage(item, paths) || hasAnyChange;
 
-                if (_queue->HasMessage() == false && local_storage.empty())
+                if (_queue->HasMessage() == false && local_storage.empty() && hasAnyChange)
                     RestApi::KodiVideoLibraryScan(_logger);
 
                 idle_timer.ReStart();
@@ -244,23 +246,24 @@ MediaServer::UpdateSinglePath(QString path){
     updatePath(info, static_cast<MediaType>(type));
 }
 
-void 
+bool
 MediaServer::processMessage(QString& message, const std::map<QString, int>& path_types) {
 
     auto root = JsonNode::Parse(_logger, message);
     if (root->Has(KeyWords(Keys::NodeType)) == false)
     {
         _logger->Error("Invalid node type: " + message);
-        return;
+        return false;
     }
 
     int type = root->GetInt(KeyWords(Keys::NodeType));
     if (type < 0 || static_cast<int>(Actions::Last) <= type)
     {
         _logger->Error("Invalid node type: " + message);
-        return;
+        return false;
     }
 
+    bool isSuccess = false;
     switch (static_cast<Actions>(type)) {
         case Actions::Rescan:{
                 QString path = root->GetString(KeyWords(Keys::Message));
@@ -270,10 +273,10 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
                     if (path_types.count(path)){
                         QDir path_as_dir(info.absoluteFilePath());
                         for (auto const& dir_entry : path_as_dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
-                            updatePath(dir_entry, static_cast<MediaType>(type));
+                           isSuccess = updatePath(dir_entry, static_cast<MediaType>(type)) || isSuccess;
                     }
                     else
-                        updatePath(info, static_cast<MediaType>(type));
+                        isSuccess = updatePath(info, static_cast<MediaType>(type));
                 }
             }
             break;
@@ -283,7 +286,7 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
                     QDir dir(item.first);
                     auto media_type = static_cast<MediaType>(item.second);
                     for (auto const& dir_entry : dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllDirs))
-                        updatePath(dir_entry, media_type);
+                        isSuccess = updatePath(dir_entry, media_type) || isSuccess;
                 }
             }
             break;
@@ -291,9 +294,11 @@ MediaServer::processMessage(QString& message, const std::map<QString, int>& path
         default:
             break;
     }
+
+    return isSuccess;
 }
 
-void
+bool
 MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
 
     auto path = dir_entry.absoluteFilePath();
@@ -302,6 +307,7 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
     //     return;
 
     qDebug() << path;
+
 
     std::shared_ptr<Media::CommonMedia> media;
     switch (media_type)
@@ -314,7 +320,7 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
             break;
         default:
             _logger->Error("Unrecognized media file " + path);
-            return;
+            return false;
     }
 
     if (media->Init() == false)
@@ -322,8 +328,15 @@ MediaServer::updatePath(QFileInfo dir_entry, MediaType media_type){
 
     _session_cache.insert(media->GetPath());
     auto nodes = media->CreateXml();
+    bool isSuccess = false;
     for (auto&& it : nodes) {
 
-        _writer->Write(it.first, it.second.Dump());
+        auto content = it.second.Dump();
+        if (content.isEmpty())
+            continue;
+        _writer->Write(it.first, content);
+        isSuccess = true;
     }
+
+    return isSuccess;
 }
